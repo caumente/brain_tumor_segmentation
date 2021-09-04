@@ -2,18 +2,29 @@ from torch import nn
 from collections import OrderedDict
 
 
-def conv1x1(in_channels, out_channels, stride=1, bias=True):
+def conv1x1(in_channels, out_channels):
+    """ 3D convolution which uses a kernel size of 1"""
 
-    return nn.Conv3d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride, bias=bias)
+    return nn.Conv3d(in_channels=in_channels, out_channels=out_channels, kernel_size=(1, 1, 1))
 
 
-def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1, bias=False):
+def conv3x3(in_channels, out_channels, stride=1, groups=1, dilation=1, bias=False):
+    """ 3D convolution which uses a kernel size of 3"""
 
-    return nn.Conv3d(in_planes, out_planes, kernel_size=3, stride=stride,
+    return nn.Conv3d(in_channels, out_channels, kernel_size=(3, 3, 3), stride=stride,
                      padding=dilation, groups=groups, bias=bias, dilation=dilation)
 
 
 class ConvInNormLeReLU(nn.Sequential):
+    """
+    This class stacks a 3D Convolution, Instance Normalization and Leaky ReLU layers.
+
+    Params
+    ******
+        - in_channels: Number of input channels
+        - out_channels: Number of output channels
+
+    """
 
     def __init__(self, in_channels, out_channels):
         super(ConvInNormLeReLU, self).__init__(
@@ -28,12 +39,22 @@ class ConvInNormLeReLU(nn.Sequential):
 
 
 class LevelBlock(nn.Sequential):
+    """
+    This class stacks two blocks of ConvInNormLeReLU (3D Convolution, Instance Normalization and Leaky ReLU layers).
 
-    def __init__(self, in_channels, mid_channels, out_channels, dilation=(1, 1)):
+    Params
+    ******
+        - in_channels: Number of input channels
+        - mid_channels: Number of channels between the first and the second block
+        - out_channels: Number of output channels
+
+    """
+
+    def __init__(self, in_channels, mid_channels, out_channels):
         super(LevelBlock, self).__init__(
             OrderedDict(
                 [
-                    ('ConvBnRelu1', ConvInNormLeReLU(in_channels, mid_channels, dilation=dilation[0])),
-                    ('ConvBnRelu2', ConvInNormLeReLU(mid_channels, out_channels, dilation=dilation[1]))
+                    ('ConvBnRelu1', ConvInNormLeReLU(in_channels, mid_channels)),
+                    ('ConvBnRelu2', ConvInNormLeReLU(mid_channels, out_channels))
                 ])
         )
