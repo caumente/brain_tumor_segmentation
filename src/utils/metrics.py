@@ -1,6 +1,6 @@
 import logging
 from typing import List
-
+from pathlib import Path
 import numpy as np
 import torch
 from numpy import logical_and as l_and, logical_not as l_not
@@ -79,6 +79,41 @@ def calculate_metrics(
         metrics_list.append(metrics)
 
     return metrics_list
+
+
+def save_metrics(
+        metrics: List[torch.Tensor],
+        current_epoch: int,
+        regions: List[str],
+        save_folder: Path = None
+):
+    """
+    This function is called after every validation epoch to store metrics into .txt file.
+
+
+    Params:
+    *******
+        - metrics (torch.nn.Module): model used to compute the segmentation
+        - current_epoch (int): number of current epoch
+        - classes (List[String]): regions to predict
+        - save_folder (Path): path where the model state is saved
+
+    Return:
+    *******
+        - It does not return anything. However, it generates a .txt file where is stored the results got in the
+        validation step. filename = validation_error.txt
+    """
+
+    metrics = list(zip(*metrics))
+    metrics = [torch.tensor(metric, device="cpu").numpy() for metric in metrics]
+    metrics = {key: value for key, value in zip(regions, metrics)}
+    print(f"\nEpoch {current_epoch} -> Val:"
+          f"", [f"{key.upper()} : {np.nanmean(value):.4f}" for key, value in metrics.items()])
+
+    # Saving progress in a file
+    with open(f"{save_folder}/validation_error.txt", mode="a") as f:
+        print(f"Epoch {current_epoch} -> Val:"
+              f"", [f"{key.upper()} : {np.nanmean(value):.4f}" for key, value in metrics.items()], file=f)
 
 
 def sentitivity(tp: float, fn: float) -> float:
