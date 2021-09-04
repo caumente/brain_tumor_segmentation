@@ -3,8 +3,6 @@ from typing import Union, Tuple
 import random
 import numpy as np
 from torchio import CropOrPad
-import torch.nn.functional as F
-from torch.utils.data._utils.collate import default_collate
 from SimpleITK import GetArrayFromImage, ReadImage
 
 
@@ -12,19 +10,6 @@ def load_nii(path_folder):
     """  This function loads a NIfTI image as array."""
 
     return GetArrayFromImage(ReadImage(str(path_folder)))
-
-
-def irm_min_max_preprocess(image: np.array, low_norm_percentile: int = 1, high_norm_percentile: int = 99) -> np.array:
-    """ Main pre-processing function used for the challenge (seems to work the best).
-        Clean outliers voxels by means of removing percentiles 1-99, and then min-max scale.
-    """
-
-    non_zeros = image > 0
-    low, high = np.percentile(image[non_zeros],
-                              [low_norm_percentile, high_norm_percentile])  # calculate percentiles
-    image = np.clip(image, low, high)  # limit the values to low and high
-    image = min_max_scaler(image)
-    return image
 
 
 def min_max_scaler(image: np.array) -> np.array:
@@ -43,31 +28,156 @@ def zscore_scaler(image: np.ndarray) -> np.ndarray:
     return image
 
 
-def crop_useful_image(sequences: np.ndarray, segmentation: np.ndarray
-                      ) -> Union[Tuple[int, int], Tuple[int, int], Tuple[int, int], Tuple[np.ndarray, np.ndarray]]:
+def cleaning_outliers_and_scaler(
+        image: np.array,
+        low_norm_percentile: int = 1,
+        high_norm_percentile: int = 99,
+        scaler: str = "min_max"
+) -> np.array:
     """
-    This function crop the sequences and their segmentation removing as much background as possible. As result, the
+        This function cleans outliers voxels by means of clipping values to the percentiles interval 1-99.
+        After that the images are scaled using Min-Max or Z-score technique.
+
+        Params:
+        *******
+            - image (np.array): image to process
+            - low_norm_percentile (int, Optional): it defines the lower limit
+            - high_norm_percentile (int, Optional): it defines the upper limit
+            - scaler (str, Optional): strategy to normalize the image.
+                - Min-Max: x-min(x)/(max(x)-min(x))
+                - Z-score: x-mean(x)/std(x)
+
+        Return:
+        *******
+            - image: image post-process
+    """
+
+    # Calculate percentiles using non-zero values and limit the values to the low and high
+    non_zeros = image > 0
+    low, high = np.percentile(image[non_zeros], [low_norm_percentile, high_norm_percentile])
+    image = np.clip(image, low, high)
+
+    # Image normalization
+    if scaler == "min_max":
+        image = min_max_scaler(image)
+    elif scaler == "z_score":
+        image = zscore_scaler(image)
+
+    return image
+
+
+def crop_useful_image(
+        sequences: np.ndarray,
+        segmentation: np.ndarray
+) -> Union[Tuple[int, int], Tuple[int, int], Tuple[int, int], Tuple[np.ndarray, np.ndarray]]:
+    """
+    This function crop the sequences and its segmentation removing as much background as possible. As result, the
     sequences and segmentation are fit to the brain boundaries.
 
     Params:
     *******
-        sequences (np.array): MRI sequences
-        segmentation (np.array): MRI segmentation
+        - sequences (np.array): MRI sequences.
+        - segmentation (np.array): MRI segmentation
 
     Return:
     *******
-        (zmin, zmax), (ymin, ymax), (xmin, xmax):
+        - (zmin, zmax): limits on Z dimension
+        - (ymin, ymax): limits on Y dimension
+        - (xmin, xmax): limits on X dimension
+        - (sequences, segmentation): sequences and segmentation fitted to brain boundaries
 
     """
-    # Remove maximum extent of the zero-background to make future crop more useful
+
+    # Getting all non-xero indexes
     z_indexes, y_indexes, x_indexes = np.nonzero(np.sum(sequences, axis=0) != 0)
-    # Add 1 pixel in each side
-    zmin, ymin, xmin = [max(0, int(np.min(arr) - 1)) for arr in (z_indexes, y_indexes, x_indexes)]
+
+    # Calculating lower and upper boundaries by each dimension. Add a extra pixel in each dimension
+    zmin, ymin, xmin = [max(0, int(np.min(idx) - 1)) for idx in (z_indexes, y_indexes, x_indexes)]
     zmax, ymax, xmax = [int(np.max(arr) + 1) for arr in (z_indexes, y_indexes, x_indexes)]
+
+    # Fitting sequences and segmentation to brain boundaries
     sequences = sequences[:, zmin:zmax, ymin:ymax, xmin:xmax]
     segmentation = segmentation[:, zmin:zmax, ymin:ymax, xmin:xmax]
 
     return (zmin, zmax), (ymin, ymax), (xmin, xmax), (sequences, segmentation)
+
+
+def random_pad_or_crop(
+        sequences: np.ndarray,
+        segmentation: np.ndarray = None,
+        target_size: tuple = (155, 240, 240)
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    This function takes as input an  4D array which represents an image with shape (sequences, depth, height, width)
+     and transform it applying a crop or pad to the target size.
+    """
+
+    def get_left_right_idx_should_pad(
+            out_resolution: int,
+            in_resolution: int
+    ) -> Union[list[bool], Tuple[bool, int, int]]:
+        """
+        This function gets the indexes to pad the images based on the current and target resolution. If the
+        in size is greater or equal than the out size a False is returned. Else, the left and right pads are returned.
+
+        Params:
+        *******
+            - out_resolution: it defines the target resolution
+            - in_resolution: it defines the current resolution
+
+        Return:
+        *******
+            - slice: it returns the slice to crop
+        """
+
+        if in_resolution >= out_resolution:
+            return [False]
+        elif in_resolution < out_resolution:
+            pad_extent = out_resolution - in_resolution
+            left = random.randint(0, pad_extent)
+            right = pad_extent - left
+            return True, left, right
+
+    def get_crop_slice(out_resolution: int, in_resolution: int) -> slice:
+        """
+        This function gets the slices to crop the images based on the current and target resolution. If the
+        current size is greater than the target size, it is returned the slices to crop the image randomly to
+        adjust it to the size. Else it is returned a slice of the current dimensions.
+
+        Params:
+        *******
+            - out_resolution: it defines the target resolution
+            - in_resolution: it defines the current resolution
+
+        Return:
+        *******
+            - slice: it returns the slice to crop
+        """
+
+        if in_resolution > out_resolution:
+            extra_size = in_resolution - out_resolution
+            left = random.randint(0, extra_size)
+            right = extra_size - left
+            return slice(left, in_resolution - right)
+        else:
+            return slice(0, in_resolution)
+
+    # Cropping the sequences and segmentation if it is necessary
+    c, z, y, x = sequences.shape
+    z_slice, y_slice, x_slice = [get_crop_slice(target, current) for target, current in zip(target_size, (z, y, x))]
+    sequences, segmentation = sequences[:, z_slice, y_slice, x_slice], segmentation[:, z_slice, y_slice, x_slice]
+
+    # Padding the sequences and segmentation if it is necessary
+    pads = [get_left_right_idx_should_pad(target, current) for target, current in zip(target_size, [z, y, x])]
+    pad_list = [(0, 0)]
+    for pad in pads:
+        if pad[0]:
+            pad_list.append((pad[1], pad[2]))
+        else:
+            pad_list.append((0, 0))
+    sequences, segmentation = np.pad(sequences, pad_list), np.pad(segmentation, pad_list)
+
+    return sequences, segmentation
 
 
 def pad_power_two(image: np.ndarray) -> np.ndarray:
@@ -88,101 +198,3 @@ def pad_power_two(image: np.ndarray) -> np.ndarray:
     image_padded = transform(torch.Tensor(image)).numpy()
 
     return image_padded
-
-
-def random_pad_or_crop(image: np.ndarray, seg: np.ndarray = None, target_size=(128, 144, 144)):
-    """
-    This function takes as input an  4-D array which represents an image with shape (sequences, channels, heigth, width)
-     and transform it applying a crop or pad to the target size.
-    """
-
-    def get_left_right_idx_should_pad(target_size, dim):
-        if dim >= target_size:
-            return [False]
-        elif dim < target_size:
-            pad_extent = target_size - dim
-            left = random.randint(0, pad_extent)
-            right = pad_extent - left
-            return True, left, right
-
-    def get_crop_slice(target_size, dim):
-        if dim > target_size:
-            crop_extent = dim - target_size
-            left = random.randint(0, crop_extent)
-            right = crop_extent - left
-            return slice(left, dim - right)
-        elif dim <= target_size:
-            return slice(0, dim)
-
-    c, z, y, x = image.shape
-    z_slice, y_slice, x_slice = [get_crop_slice(target, dim) for target, dim in zip(target_size, (z, y, x))]
-    image = image[:, z_slice, y_slice, x_slice]
-    if seg is not None:
-        seg = seg[:, z_slice, y_slice, x_slice]
-    todos = [get_left_right_idx_should_pad(size, dim) for size, dim in zip(target_size, [z, y, x])]
-    padlist = [(0, 0)]  # channel dim
-    for to_pad in todos:
-        if to_pad[0]:
-            padlist.append((to_pad[1], to_pad[2]))
-        else:
-            padlist.append((0, 0))
-    image = np.pad(image, padlist)
-
-    if seg is not None:
-        seg = np.pad(seg, padlist)
-        return image, seg
-
-    return image
-
-
-def custom_collate(batch):
-    batch = pad_batch_to_max_shape(batch)
-    return default_collate(batch)
-
-
-def determinist_collate(batch):
-    batch = pad_batch_to_max_shape(batch)
-    return default_collate(batch)
-
-
-def pad_batch_to_max_shape(batch):
-    shapes = (sample['label'].shape for sample in batch)
-    _, z_sizes, y_sizes, x_sizes = list(zip(*shapes))
-    maxs = [int(max(z_sizes)), int(max(y_sizes)), int(max(x_sizes))]
-    for i, max_ in enumerate(maxs):
-        max_stride = 16
-        if max_ % max_stride != 0:
-            # Make it divisible by 16
-            maxs[i] = ((max_ // max_stride) + 1) * max_stride
-    zmax, ymax, xmax = maxs
-    for elem in batch:
-        exple = elem['label']
-        zpad, ypad, xpad = zmax - exple.shape[1], ymax - exple.shape[2], xmax - exple.shape[3]
-        assert all(pad >= 0 for pad in (zpad, ypad, xpad)), "Negative padding value error !!"
-        # free data augmentation
-        left_zpad, left_ypad, left_xpad = [random.randint(0, pad) for pad in (zpad, ypad, xpad)]
-        right_zpad, right_ypad, right_xpad = [pad - left_pad for pad, left_pad in
-                                              zip((zpad, ypad, xpad), (left_zpad, left_ypad, left_xpad))]
-        pads = (left_xpad, right_xpad, left_ypad, right_ypad, left_zpad, right_zpad)
-        elem['image'], elem['label'] = F.pad(elem['image'], pads), F.pad(elem['label'], pads)
-    return batch
-
-
-def pad_batch1_to_compatible_size(image):
-    """ Function to reshape image to be able to divide it by 16"""
-
-    zyx = list(image.shape[-3:])
-
-    for i, dim in enumerate(zyx):
-        max_stride = 16
-        if dim % max_stride != 0:
-            zyx[i] = ((dim // max_stride) + 1) * max_stride
-
-    zmax, ymax, xmax = zyx
-    zpad, ypad, xpad = zmax - image.size(2), ymax - image.size(3), xmax - image.size(4)
-    assert all(pad >= 0 for pad in (zpad, ypad, xpad)), "Negative padding value error !!"
-
-    pads = (0, xpad, 0, ypad, 0, zpad)
-    image = F.pad(image, pads)
-
-    return image, (zpad, ypad, xpad)

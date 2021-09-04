@@ -11,7 +11,7 @@ from torch import from_numpy
 from torch.utils.data.dataset import Dataset
 
 from src.dataset.image_utils import crop_useful_image
-from src.dataset.image_utils import irm_min_max_preprocess
+from src.dataset.image_utils import cleaning_outliers_and_scaler
 from src.dataset.image_utils import load_nii
 from src.dataset.image_utils import random_pad_or_crop
 
@@ -22,18 +22,18 @@ class Brats(Dataset):
 
     Params:
     *******
-        patients_dir (List[Path]): list of paths where the images are
-        sequences (List[str], optional): list of MRI's sequences (["T1", "T2", "FLAIR", "T1ce"])
-        not_ground_truth (bool, optional): weather there is segmentation or not (inference phase)
-        regions (List[str], optional): list of regions of interest ["et", "tc", "wt"]
-        normalization (str, optional): normalization technique
-        low_percentile (int, optional): lower percentile to remove
-        high_percentile (str, optional): upper percentile to remove
-        crop_or_pad (Tuple, optional): indicates the dimensions of the images cropped (160, 224, 160)
-        fit_boundaries (Bool, optional): if true the images are preprocess to adjust them to the brain boundaries
-        inverse_seq (bool, optional): if true the sequences are inverted
+        - patients_dir (List[Path]): list of paths where the images are
+        - sequences (List[str], optional): list of MRI's sequences (["T1", "T2", "FLAIR", "T1ce"])
+        - not_ground_truth (bool, optional): weather there is segmentation or not (inference phase)
+        - regions (List[str], optional): list of regions of interest ["et", "tc", "wt"]
+        - normalization (str, optional): normalization technique
+        - low_percentile (int, optional): lower percentile to remove
+        - high_percentile (str, optional): upper percentile to remove
+        - crop_or_pad (Tuple, optional): indicates the dimensions of the images cropped (160, 224, 160)
+        - fit_boundaries (Bool, optional): if true the images are preprocess to adjust them to the brain boundaries
+        - inverse_seq (bool, optional): if true the sequences are inverted
                                       (https://scikit-image.org/docs/dev/api/skimage.util.html#skimage.util.invert)
-        debug_mode (bool, optional): if debug_mode just three images are loaded
+        - debug_mode (bool, optional): if debug_mode just three images are loaded
     """
 
     def __init__(
@@ -98,7 +98,7 @@ class Brats(Dataset):
 
         # Sequences normalization and stacking
         if self.normalization:
-            sequences = {key: irm_min_max_preprocess(
+            sequences = {key: cleaning_outliers_and_scaler(
                 image=sequences[key],
                 low_norm_percentile=self.low_norm_percentile,
                 high_norm_percentile=self.high_norm_percentile
@@ -122,7 +122,9 @@ class Brats(Dataset):
                                                                                                     segmentation=ground_truth)
 
         # Cropping/padding to the resolution defined
-        sequences, ground_truth = random_pad_or_crop(image=sequences, seg=ground_truth, target_size=self.crop_or_pad)
+        sequences, ground_truth = random_pad_or_crop(sequences=sequences,
+                                                     segmentation=ground_truth,
+                                                     target_size=self.crop_or_pad)
 
         # Type casting for sequences and ground truth
         sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
@@ -147,12 +149,12 @@ class Brats(Dataset):
 
         Params:
         *******
-            img_segmentation: image segmented to transform into regions
+            - img_segmentation: image segmented to transform into regions
 
         Return:
         *******
-            et_present: it is true if the segmentation possess the ET region
-            img_segmentation: stack of images of the regions
+            - et_present: it is true if the segmentation possess the ET region
+            - img_segmentation: stack of images of the regions
         """
         et = segmentation == 4
         tc = np.logical_or(segmentation == 4, segmentation == 1)
