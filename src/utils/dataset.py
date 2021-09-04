@@ -1,4 +1,5 @@
 import torch
+from pathlib import Path
 from typing import Union, Tuple
 import random
 import numpy as np
@@ -6,7 +7,7 @@ from torchio import CropOrPad
 from SimpleITK import GetArrayFromImage, ReadImage
 
 
-def load_nii(path_folder):
+def load_nii(path_folder: Path) -> np.ndarray:
     """  This function loads a NIfTI image as array."""
 
     return GetArrayFromImage(ReadImage(str(path_folder)))
@@ -66,7 +67,7 @@ def cleaning_outliers_and_scaler(
     return image
 
 
-def crop_useful_image(
+def fit_brain_boundaries(
         sequences: np.ndarray,
         segmentation: np.ndarray
 ) -> Union[Tuple[int, int], Tuple[int, int], Tuple[int, int], Tuple[np.ndarray, np.ndarray]]:

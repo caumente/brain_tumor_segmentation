@@ -10,10 +10,10 @@ from sklearn.model_selection import train_test_split
 from torch import from_numpy
 from torch.utils.data.dataset import Dataset
 
-from src.dataset.image_utils import crop_useful_image
-from src.dataset.image_utils import cleaning_outliers_and_scaler
-from src.dataset.image_utils import load_nii
-from src.dataset.image_utils import random_pad_or_crop
+from src.utils.dataset import fit_brain_boundaries
+from src.utils.dataset import cleaning_outliers_and_scaler
+from src.utils.dataset import load_nii
+from src.utils.dataset import random_pad_or_crop
 
 
 class Brats(Dataset):
@@ -118,8 +118,8 @@ class Brats(Dataset):
 
         # Fit the sequences to the brain boundaries by cropping and the cropping/padding to the resolution defined
         if self.fit_boundaries:
-            (zmin, zmax), (ymin, ymax), (xmin, xmax), (sequences, ground_truth) = crop_useful_image(sequences=sequences,
-                                                                                                    segmentation=ground_truth)
+            (zmin, zmax), (ymin, ymax), (xmin, xmax), (sequences, ground_truth) = fit_brain_boundaries(sequences=sequences,
+                                                                                                       segmentation=ground_truth)
 
         # Cropping/padding to the resolution defined
         sequences, ground_truth = random_pad_or_crop(sequences=sequences,
