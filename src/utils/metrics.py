@@ -17,8 +17,8 @@ METRICS = [HAUSSDORF, DICE, SENS, SPEC, ACC, JACC, PREC]
 
 
 def calculate_metrics(
-        ground_truth: torch.Tensor,
-        segmentation: torch.Tensor,
+        ground_truth: np.ndarray,
+        segmentation: np.ndarray,
         patient: str,
         regions: List[str]
 ) -> List[dict]:

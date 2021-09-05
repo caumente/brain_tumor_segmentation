@@ -131,8 +131,8 @@ class Brats(Dataset):
 
         return dict(
             patient_id=patient_info["id"],
-            image=sequences,
-            label=ground_truth,
+            sequences=sequences,
+            ground_truth=ground_truth,
             seg_path=str(patient_info["seg"]) if self.has_ground_truth else "",
             crop_indexes=((zmin, zmax), (ymin, ymax), (xmin, xmax)),
             et_present=et_present
