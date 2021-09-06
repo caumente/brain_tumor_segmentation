@@ -58,3 +58,46 @@ class LevelBlock(nn.Sequential):
                     ('ConvBnRelu2', ConvInNormLeReLU(mid_channels, out_channels))
                 ])
         )
+
+
+class ConvBatchNormReLU(nn.Sequential):
+    """
+    This class stacks a 3D Convolution, Batch Normalization and ReLU layers.
+
+    Params
+    ******
+        - in_channels: Number of input channels
+        - out_channels: Number of output channels
+
+    """
+    def __init__(self, in_channels, out_channels):
+        super(ConvBatchNormReLU, self).__init__(
+            OrderedDict(
+                [
+                    ('Conv', conv3x3(in_channels, out_channels)),
+                    ('BatchNorm', nn.BatchNorm3d(out_channels)),
+                    ('ReLU', nn.ReLU())
+                ]
+            )
+        )
+
+
+class UBlock(nn.Sequential):
+    """
+    This class stacks two blocks of ConvBatchNormReLU (3D Convolution, Batch Normalization and ReLU layers).
+
+    Params
+    ******
+        - in_channels: Number of input channels
+        - mid_channels: Number of channels between the first and the second block
+        - out_channels: Number of output channels
+
+    """
+    def __init__(self, in_channels, mid_channels, out_channels):
+        super(UBlock, self).__init__(
+            OrderedDict(
+                [
+                    ('ConvBnRelu1', ConvBatchNormReLU(in_channels, mid_channels)),
+                    ('ConvBnRelu2', ConvBatchNormReLU(mid_channels, out_channels))
+                ])
+        )

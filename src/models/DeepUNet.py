@@ -51,21 +51,22 @@ class DeepUNet(nn.Module):
         self.upsample_32 = nn.Upsample(size=(20, 28, 20), mode="trilinear", align_corners=True)
         self.upsample_24 = nn.Upsample(size=(10, 14, 10), mode="trilinear", align_corners=True)
 
-        self.outconv = conv1x1(widths[0] // 2, regions)
+        # Output
+        self.output = conv1x1(widths[0] // 2, regions)
 
     def forward(self, x):
         # Encoding phase
         e1 = self.encoder1(x)
-        d1 = self.ads_96(e1)
-        e2 = self.encoder2(d1)
-        d2 = self.ads_64(e2)
-        e3 = self.encoder3(d2)
-        d3 = self.ads_48(e3)
-        e4 = self.encoder4(d3)
-        d4 = self.ads_32(e4)
-        e5 = self.encoder5(d4)
-        d5 = self.ads_24(e5)
-        e6 = self.encoder6(d5)
+        p1 = self.ads_96(e1)
+        e2 = self.encoder2(p1)
+        p2 = self.ads_64(e2)
+        e3 = self.encoder3(p2)
+        p3 = self.ads_48(e3)
+        e4 = self.encoder4(p3)
+        p4 = self.ads_32(e4)
+        e5 = self.encoder5(p4)
+        p5 = self.ads_24(e5)
+        e6 = self.encoder6(p5)
 
         # Bottleneck
         bottleneck = self.bottleneck(e6)
@@ -84,6 +85,6 @@ class DeepUNet(nn.Module):
         d1 = self.decoder1(torch.cat([e1, up1], dim=1))
 
         # Output
-        output = self.outconv(d1)
+        output = self.output(d1)
 
         return output

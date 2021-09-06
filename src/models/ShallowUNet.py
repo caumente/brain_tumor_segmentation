@@ -36,12 +36,12 @@ class ShallowUNet(nn.Module):
     def forward(self, x):
         # Encoding phase
         e1 = self.encoder1(x)
-        d1 = self.downsample(e1)
-        e2 = self.encoder2(d1)
-        d2 = self.downsample(e2)
-        e3 = self.encoder3(d2)
-        d3 = self.downsample(e3)
-        e4 = self.encoder4(d3)
+        p1 = self.downsample(e1)
+        e2 = self.encoder2(p1)
+        p2 = self.downsample(e2)
+        e3 = self.encoder3(p2)
+        p3 = self.downsample(e3)
+        e4 = self.encoder4(p3)
 
         # Bottleneck phase
         bottleneck = self.bottleneck(e4)
@@ -49,13 +49,13 @@ class ShallowUNet(nn.Module):
 
         # Decoding phase + skip connections
         up3 = self.upsample(bottleneck2)
-        up3 = self.decoder3(torch.cat([e3, up3], dim=1))
-        up2 = self.upsample(up3)
-        up2 = self.decoder2(torch.cat([e2, up2], dim=1))
-        up1 = self.upsample(up2)
-        up1 = self.decoder1(torch.cat([e1, up1], dim=1))
+        d3 = self.decoder3(torch.cat([e3, up3], dim=1))
+        up2 = self.upsample(d3)
+        d2 = self.decoder2(torch.cat([e2, up2], dim=1))
+        up1 = self.upsample(d2)
+        d1 = self.decoder1(torch.cat([e1, up1], dim=1))
 
         # Output
-        output = self.output(up1)
+        output = self.output(d1)
 
         return output
