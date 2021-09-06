@@ -4,12 +4,12 @@ from layers import conv1x1
 from layers import UBlock
 
 
-class UNet(nn.Module):
+class UNet3D(nn.Module):
 
     name = "3D U-Net"
 
     def __init__(self, sequences, regions):
-        super(UNet, self).__init__()
+        super(UNet3D, self).__init__()
 
         features = [64, 128, 256, 512]
 

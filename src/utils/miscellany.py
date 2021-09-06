@@ -9,8 +9,9 @@ import pandas as pd
 from typing import Tuple
 from torch.cuda.amp import autocast
 from SimpleITK import GetImageFromArray, WriteImage
-from utils.metrics import calculate_metrics
-from utils.metrics import METRICS
+from ..utils.metrics import METRICS
+from ..utils.metrics import calculate_metrics
+
 
 
 def save_args(args: argparse.Namespace):
@@ -34,7 +35,7 @@ def save_args(args: argparse.Namespace):
     with config_file.open("w") as file:
         yaml.dump(config, file)
 
-um
+
 def model_prediction(model: torch.nn.Module, sequences: torch.tensor) -> np.ndarray:
     """
     This function takes as input the sequences of a MRI and a model to generate an automatic segmentation.
