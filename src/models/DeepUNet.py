@@ -6,6 +6,16 @@ from src.models.layers import ConvInNormLeReLU
 
 
 class DeepUNet(nn.Module):
+    """
+    This class implements a variation of 3D Unet network. Main modifications are:
+        - Six levels of depth instead of four
+        - Replacement of ReLU activation layer by LeakyReLU
+        - Adaptive pooling layers to be able to upsample the images
+        - Use of instance normalization to ensure a normalization by each sequence
+
+    It is prepared to get as input images which resolution in 160, 224, 160.
+    """
+
     name = "Deep U-Net"
 
     def __init__(self, sequences, regions, width):

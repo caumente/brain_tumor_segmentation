@@ -6,6 +6,13 @@ from src.models.layers import ConvInNormLeReLU
 
 
 class ShallowUNet(nn.Module):
+    """
+    This class implements a variation of 3D Unet network. Main modifications are:
+        - Replacement of ReLU activation layer by LeakyReLU
+        - Use of instance normalization to ensure a normalization by each sequence
+
+    """
+
     name = "Shallow U-Net"
 
     def __init__(self, sequences, regions, width):
