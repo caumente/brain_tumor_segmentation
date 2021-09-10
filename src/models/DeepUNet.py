@@ -1,8 +1,8 @@
 import torch
 from torch import nn
-from layers import conv1x1
-from layers import LevelBlock
-from layers import ConvInNormLeReLU
+from src.models.layers import conv1x1
+from src.models.layers import LevelBlock
+from src.models.layers import ConvInNormLeReLU
 
 
 class DeepUNet(nn.Module):

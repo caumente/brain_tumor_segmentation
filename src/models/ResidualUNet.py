@@ -11,11 +11,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def resunet_3d(channel_in=4, n_classes=3, base_filters=24):
-    model_in_block = in_block(channel_in=channel_in, channel_out=base_filters)
-    model_encoder = encoder(base_filters=base_filters)
-    model_decoder = decoder(base_filters=base_filters)
-    model_seg_out_block = seg_out_block(base_filters=base_filters, n_classes=n_classes)
+def resunet_3d(sequences=4, regions=3, witdh=24):
+    model_in_block = in_block(channel_in=sequences, channel_out=witdh)
+    model_encoder = encoder(base_filters=witdh)
+    model_decoder = decoder(base_filters=witdh)
+    model_seg_out_block = seg_out_block(base_filters=witdh, n_classes=regions)
 
     model = seg_path(
         model_in_block,

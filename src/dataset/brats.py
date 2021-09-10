@@ -173,7 +173,7 @@ def get_datasets(
         seed,
         debug_mode,
         has_ground_truth=True,
-        path_images="./data/Training/",
+        path_images="./datasets/training/",
         normalization=True,
         low_norm_percentile=1,
         high_norm_percentile=99,
@@ -231,11 +231,11 @@ def get_datasets(
                          debug_mode=debug_mode)
 
     log.info(f"Size of train dataset: {len(train_dataset)}")
-    log.info(f"Shape of images used for training: {train_dataset[0]['image'].shape}")
+    log.info(f"Shape of images used for training: {train_dataset[0]['sequences'].shape}")
     log.info(f"Size of validation dataset: {len(val_dataset)}")
-    log.info(f"Shape of images used for validating: {val_dataset[0]['image'].shape}")
+    log.info(f"Shape of images used for validating: {val_dataset[0]['sequences'].shape}")
     log.info(f"Size of test dataset: {len(test_dataset)}")
-    log.info(f"Shape of images used for testing: {test_dataset[0]['image'].shape}")
+    log.info(f"Shape of images used for testing: {test_dataset[0]['sequences'].shape}")
 
     return train_dataset, val_dataset, test_dataset
 

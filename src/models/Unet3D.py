@@ -1,7 +1,7 @@
 import torch
 from torch import nn
-from layers import conv1x1
-from layers import UBlock
+from src.models.layers import conv1x1
+from src.models.layers import UBlock
 
 
 class UNet3D(nn.Module):

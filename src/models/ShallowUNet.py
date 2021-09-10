@@ -1,8 +1,8 @@
 import torch
 from torch import nn
-from layers import conv1x1
-from layers import LevelBlock
-from layers import ConvInNormLeReLU
+from src.models.layers import conv1x1
+from src.models.layers import LevelBlock
+from src.models.layers import ConvInNormLeReLU
 
 
 class ShallowUNet(nn.Module):
@@ -20,7 +20,7 @@ class ShallowUNet(nn.Module):
         self.encoder4 = LevelBlock(widths[2], widths[3] // 2, widths[3])
 
         # Bottleneck
-        self.bottleneck = LevelBlock(widths[3], widths[3], widths[3], (2, 2))
+        self.bottleneck = LevelBlock(widths[3], widths[3], widths[3])
         self.bottleneck2 = ConvInNormLeReLU(widths[3] * 2, widths[2])
 
         # Decoders

@@ -206,8 +206,8 @@ class VNetLight(nn.Module):
         print("Vnet light test is complete")
 
 
-def get_Vnet(n_classes=3, channel_in=4):
-    model = VNet(in_channels=channel_in, classes=n_classes)
+def get_Vnet(sequences=4, regions=3):
+    model = VNet(in_channels=sequences, classes=regions)
     model.name = 'Vnet'
     model.deep_supervision = False
 
