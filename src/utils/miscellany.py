@@ -60,7 +60,7 @@ def model_prediction(model: torch.nn.Module, sequences: torch.tensor) -> np.ndar
 
 def regions_to_labels(segmentation: np.ndarray, regions: Tuple[str]) -> np.ndarray:
     """
-    This function takes a input a segmentation as a 3D np.ndarray and generates
+    This function takes a input a segmentation as a 3D np.array and generates
 
     Params:
     *******
@@ -116,7 +116,7 @@ def generate_boxplot_metrics(metrics_df: pd.DataFrame, path: str):
     """
     os.mkdir(path)
     for metric in METRICS:
-        metrics_df.boxplot(metric, by="label").get_figure().savefig(f"{path}{metric}.png")
+        metrics_df.boxplot(metric, by="region").get_figure().savefig(f"{path}{metric}.png")
 
 
 def generate_segmentations(
@@ -143,9 +143,10 @@ def generate_segmentations(
 
     metrics_list = []
     for i, batch in enumerate(data_loader):
+
         # Getting image attributes
         sequences = batch["sequences"]
-        ground_truth = batch["ground_truth"][0, :, :, :, :].cpu().numpy()
+        ground_truth = batch["ground_truth"][0].cpu().numpy()
         patient_id = batch["patient_id"][0]
         logging.info(f"Processing patient {patient_id} ...")
 
@@ -154,17 +155,18 @@ def generate_segmentations(
         logging.info(f"Segmentation calculated...")
 
         # Evaluating ground truth and segmentation
-        patient_metric_list = calculate_metrics(segmentation=segmentation, ground_truth=ground_truth,
-                                                patient=patient_id, regions=args.classes)
+        patient_metric_list = calculate_metrics(ground_truth=ground_truth, segmentation=segmentation,
+                                                patient=patient_id, regions=args.regions)
         metrics_list.append(patient_metric_list)
         logging.info(f"Metrics stored...")
 
-        # Building labels from regions and saving the image
-        segmentation = regions_to_labels(segmentation=segmentation, regions=args.classes)
-        logging.info(f"Converted ROI segmentation into label segmentation...")
+        # Building labels from regions
+        segmentation = regions_to_labels(segmentation=segmentation, regions=args.regions)
+        ground_truth = regions_to_labels(segmentation=ground_truth, regions=args.regions)
+        logging.info(f"Converted ROI segmentation and ground truth into labels...")
 
         # Saving sequences and ground truth cropped, and segmentation predicted
-        WriteImage(GetImageFromArray(segmentation), f"{args.seg_folder}/{patient_id}_segmentation.nii.gz")
+        np.save(f"{args.seg_folder}/{patient_id}_sequences", sequences.cpu().numpy())
         WriteImage(GetImageFromArray(ground_truth), f"{args.seg_folder}/{patient_id}_ground_truth.nii.gz")
         WriteImage(GetImageFromArray(segmentation), f"{args.seg_folder}/{patient_id}_segmentation.nii.gz")
         logging.info(f"Sequences, ground truth and segmentation saved successfully...")
@@ -173,12 +175,13 @@ def generate_segmentations(
     df_metrics_val = pd.DataFrame([item for sublist in metrics_list for item in sublist])
     df_metrics_val.to_csv((args.save_folder / 'results_by_patient.csv'), index=False)
 
+    print(df_metrics_val)
     df_melt = pd.melt(df_metrics_val,
-                      id_vars=["patient_id", "sequences"],
+                      id_vars=["patient_id", "region"],
                       value_vars=METRICS,
                       var_name="metric_name",
                       value_name="value")
-    df_summary = df_melt.groupby(["sequences", "metric_name"]).describe().reset_index()
+    df_summary = df_melt.groupby(["region", "metric_name"]).describe().reset_index()
     df_summary.to_csv(f"{args.save_folder}/summary_metrics.csv", index=False)
     logging.info(f"\nMetrics summary:\n\n{df_summary}")
 
@@ -255,3 +258,23 @@ class ProgressMeter(object):
         num_digits = len(str(num_batches // 1))
         fmt = '{:' + str(num_digits) + 'd}'
         return '[' + fmt + '/' + fmt.format(num_batches) + ']'
+
+
+
+
+# def regions_to_labels(segmentation):
+#
+#     et = segmentation[0]
+#     net = np.logical_and(segmentation[1], np.logical_not(et))
+#     ed = np.logical_and(segmentation[2], np.logical_not(segmentation[1]))
+#
+#     # Create label segmentation image
+#     segmentationmap = np.zeros(segmentation[0].shape)
+#     segmentationmap[et] = 4
+#     segmentationmap[net] = 1
+#     segmentationmap[ed] = 2
+#     segmentationmap = GetImageFromArray(segmentationmap)
+#
+#     return segmentationmap
+
+
