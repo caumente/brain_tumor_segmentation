@@ -359,15 +359,6 @@ def dataset_loading(args):
     return train_loader, val_loader, test_loader
 
 
-def flip_image(image, rand_axis=None):
-    if rand_axis is None:
-        rand_axis = random.randint(2, 4)
-
-    image = torch.flip(image, [rand_axis])
-
-    return image, rand_axis
-
-
 def step(
         data_loader: torch.utils.data.Dataset,
         model: torch.nn.Module,
@@ -405,7 +396,7 @@ def step(
 
             # If train dada augmentation, else just prediction
             if mode == "train":
-                data_aug = DataAugmenter(probability=0.4, noise_only=False, channel_shuffling=False).cuda()
+                data_aug = DataAugmenter(probability=0.4).cuda()
                 inputs = data_aug(inputs)
                 segmentation = model(inputs)
                 segmentation = data_aug.reverse(segmentation)
@@ -446,28 +437,6 @@ def step(
         save_metrics(metrics=metrics, current_epoch=epoch, regions=regions, save_folder=save_folder)
 
     return losses.avg
-
-
-def stats_tensor(tensor, detach=False, decimals=6):
-    if detach:
-        nd_array = tensor.detach().cpu().numpy()[np.nonzero(tensor.detach().cpu().numpy())]
-    else:
-        nd_array = tensor.cpu().numpy()[np.nonzero(tensor.cpu().numpy())]
-    max_, min_ = np.max(nd_array), np.min(nd_array)
-    mean, median = np.mean(nd_array), np.median(nd_array)
-    std = np.std(nd_array)
-
-    logging.info(f"Statistics -> "
-                 f"Max: {max_:.{decimals}f} | "
-                 f"Min: {min_:.{decimals}f} | "
-                 f"Mean: {mean:.{decimals}f} | "
-                 f"Median: {median:.{decimals}f} | "
-                 f"Std: {std:.{decimals}f}")
-
-
-def get_lr(optimizer):
-    for param_group in optimizer.param_groups:
-        return param_group['lr']
 
 
 if __name__ == '__main__':
