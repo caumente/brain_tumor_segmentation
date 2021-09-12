@@ -199,3 +199,22 @@ def pad_power_two(image: np.ndarray) -> np.ndarray:
     image_padded = transform(torch.Tensor(image)).numpy()
 
     return image_padded
+
+
+def flip_image(image: Union[torch.Tensor, np.ndarray], rand_axis=None):
+    """
+    This function takes as input a image as a Tensor or Array and generates a random flip along the axis
+
+    Params:
+    *******
+        - image (Union[torch.Tensor, np.Array]): Image to flip
+    """
+    if rand_axis is None:
+        rand_axis = random.randint(2, 4)
+
+    if type(image) == torch.Tensor:
+        image = torch.flip(image, [rand_axis])
+    elif type(image) == np.ndarray:
+        image = np.flip(image, [rand_axis])
+
+    return image, rand_axis

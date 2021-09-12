@@ -26,7 +26,7 @@ def save_checkpoint(state: dict, checkpoint_path: Path):
 
     Params:
     *******
-        state (dict): Dict with information such as {epoch:value, optim:value, scheduler:value, ..}
+        state (dict): Dict with information such as {epoch:value, optimizer:value, scheduler:value, ..}
         save_folder (Path): Path where the model state is saved
 
     """
@@ -53,3 +53,11 @@ def load_checkpoint(checkpoint_path: str, model: torch.nn.Module):
         logging.info(f"\n\t-> Loaded checkpoint '{checkpoint_path}'. Last epoch: {epoch}")
     else:
         raise ValueError(f"\n\t-> No checkpoint found at '{checkpoint_path}'")
+
+
+def get_lr(optimizer):
+    """
+    This function takes a optimizer a input and gets the learning rate
+    """
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
