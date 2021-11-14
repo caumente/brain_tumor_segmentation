@@ -86,7 +86,8 @@ class Brats(Dataset):
     def __getitem__(self, idx):
 
         # Variables initialization
-        zmin, ymin, xmin, zmax, ymax, xmax = 0, 0, 0, 155, 240, 240
+        # zmin, ymin, xmin, zmax, ymax, xmax = 0, 0, 0, 155, 240, 240
+        cropped_indexes = [(0, 155), (0, 240), (0, 240)]
         et_present = False
         ground_truth = None
 
@@ -112,19 +113,17 @@ class Brats(Dataset):
 
         # From medical segmentation using labels (1, 2, 4) to regions of interest (et, wt, tc)
         if self.has_ground_truth:
-            et_present, ground_truth = self.labels_to_regions(ground_truth)
+            et_present, ground_truth = self.labels_to_regions(segmentation=ground_truth)
         else:
             ground_truth = np.zeros((len(self.regions), self.crop_or_pad[0], self.crop_or_pad[1], self.crop_or_pad[2]))
 
         # Fit the sequences to the brain boundaries by cropping and the cropping/padding to the resolution defined
         if self.fit_boundaries:
-            (zmin, zmax), (ymin, ymax), (xmin, xmax), (sequences, ground_truth) = fit_brain_boundaries(sequences=sequences,
-                                                                                                       segmentation=ground_truth)
+            cropped_indexes, (sequences, ground_truth) = fit_brain_boundaries(sequences=sequences, segmentation=ground_truth)
+            #(zmin, zmax), (ymin, ymax), (xmin, xmax), (sequences, ground_truth) = fit_brain_boundaries(sequences=sequences, segmentation=ground_truth)
 
         # Cropping/padding to the resolution defined
-        sequences, ground_truth = random_pad_or_crop(sequences=sequences,
-                                                     segmentation=ground_truth,
-                                                     target_size=self.crop_or_pad)
+        sequences, ground_truth, random_indexes = random_pad_or_crop(sequences=sequences, segmentation=ground_truth, target_size=self.crop_or_pad)
 
         # Type casting for sequences and ground truth
         sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
@@ -134,7 +133,8 @@ class Brats(Dataset):
             sequences=sequences,
             ground_truth=ground_truth,
             seg_path=str(patient_info["seg"]) if self.has_ground_truth else "",
-            crop_indexes=((zmin, zmax), (ymin, ymax), (xmin, xmax)),
+            crop_indexes=cropped_indexes,
+            random_indexes=random_indexes,
             et_present=et_present
         )
 
@@ -165,6 +165,85 @@ class Brats(Dataset):
         segmentation = np.stack([regions_dict[region] for region in self.regions])
 
         return et_present, segmentation
+
+def recover_initial_resolution(image, cropped_indexes, random_indexes):
+    """
+    This function recover the initial image resolution given the cropped index and the random pads added.
+
+        Params:
+        *******
+            - image: Image to process
+            - cropped_indexes: [Z, Y, X] indexes cropped when fitting brain boundaries
+            - random_indexes: [Z, Y, X] indexes added when random padding image
+
+        Return:
+        *******
+            - image: Image recovered
+    """
+
+    def calculate_balance_crop_pad(cropped_indexes, random_indexes):
+
+        # Getting Z, Y, X components
+        (zmin_pad, zmax_pad), (ymin_pad, ymax_pad), (xmin_pad, xmax_pad) = random_indexes
+        (zmin, zmax), (ymin, ymax), (xmin, xmax) = cropped_indexes
+
+        # Calculating pads and crops
+        zmin_rebuild = zmin - zmin_pad
+        zmax_rebuild = 155 - (zmax + zmax_pad)
+
+        ymin_rebuild = ymin - ymin_pad
+        ymax_rebuild = 240 - (ymax + ymax_pad)
+
+        xmin_rebuild = xmin - xmin_pad
+        xmax_rebuild = 240 - (xmax + xmax_pad)
+
+        dims = [(zmin_rebuild, zmax_rebuild), (ymin_rebuild, ymax_rebuild), (xmin_rebuild, xmax_rebuild)]
+
+        return dims
+
+    def get_crop_idx(dims):
+        crops_idx = []
+        for n, (a, b) in enumerate(dims):
+            # Crops
+            if a < 0:
+                a = -a
+            else:
+                a = 0
+
+            if b >= 0:
+                b = image[0].shape[n]
+
+            crops_idx.append((a, b))
+
+        return crops_idx
+
+    def get_pad_idx(dims):
+
+        pads_idx = [(0, 0)]
+        for n, (a, b) in enumerate(dims):
+            # Pads
+            if a <= 0:
+                a = 0
+            if b <= 0:
+                b = 0
+
+            pads_idx.append((a, b))
+        return pads_idx
+
+
+    # Get balance between cropped indexes and random indexes
+    dims = calculate_balance_crop_pad(cropped_indexes, random_indexes)
+
+    # cropped
+    zcrop, ycrop, xcrop = [x for x in get_crop_idx(dims)]
+    image = image[:, zcrop[0]:zcrop[1], ycrop[0]:ycrop[1], xcrop[0]:xcrop[1]]
+    print(f"Resolution afer cropping:, {image.shape}")
+
+    # padded
+    image = np.pad(image, get_pad_idx(dims))
+    print(f"Resolution afer padding:, {image.shape}")
+
+    return image
 
 
 def get_datasets(

@@ -1,6 +1,6 @@
 import torch
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 import random
 import numpy as np
 from torchio import CropOrPad
@@ -70,7 +70,7 @@ def cleaning_outliers_and_scaler(
 def fit_brain_boundaries(
         sequences: np.ndarray,
         segmentation: np.ndarray
-) -> Union[Tuple[int, int], Tuple[int, int], Tuple[int, int], Tuple[np.ndarray, np.ndarray]]:
+) -> Union[List[Tuple[int, int]], Tuple[np.ndarray, np.ndarray]]:
     """
     This function crop the sequences and its segmentation removing as much background as possible. As result, the
     sequences and segmentation are fit to the brain boundaries.
@@ -99,15 +99,16 @@ def fit_brain_boundaries(
     # Fitting sequences and segmentation to brain boundaries
     sequences = sequences[:, zmin:zmax, ymin:ymax, xmin:xmax]
     segmentation = segmentation[:, zmin:zmax, ymin:ymax, xmin:xmax]
+    cropped_indexes = [(zmin, zmax), (ymin, ymax), (xmin, xmax)]
 
-    return (zmin, zmax), (ymin, ymax), (xmin, xmax), (sequences, segmentation)
+    return cropped_indexes, (sequences, segmentation)
 
 
 def random_pad_or_crop(
         sequences: np.ndarray,
         segmentation: np.ndarray = None,
         target_size: tuple = (155, 240, 240)
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, List[Tuple[int, int]]]:
     """
     This function takes as input an  4D array which represents an image with shape (sequences, depth, height, width)
      and transform it applying a crop or pad to the target size.
@@ -116,7 +117,7 @@ def random_pad_or_crop(
     def get_left_right_idx_should_pad(
             out_resolution: int,
             in_resolution: int
-    ) -> Union[list[bool], Tuple[bool, int, int]]:
+    ) -> Union[List[bool], Tuple[bool, int, int]]:
         """
         This function gets the indexes to pad the images based on the current and target resolution. If the
         in size is greater or equal than the out size a False is returned. Else, the left and right pads are returned.
@@ -178,7 +179,7 @@ def random_pad_or_crop(
             pad_list.append((0, 0))
     sequences, segmentation = np.pad(sequences, pad_list), np.pad(segmentation, pad_list)
 
-    return sequences, segmentation
+    return sequences, segmentation, pad_list[1:]
 
 
 def pad_power_two(image: np.ndarray) -> np.ndarray:
