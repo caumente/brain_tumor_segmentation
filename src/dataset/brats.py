@@ -133,7 +133,7 @@ class Brats(Dataset):
             sequences=sequences,
             ground_truth=ground_truth,
             seg_path=str(patient_info["seg"]) if self.has_ground_truth else "",
-            crop_indexes=cropped_indexes,
+            cropped_indexes=cropped_indexes,
             random_indexes=random_indexes,
             et_present=et_present
         )
@@ -201,7 +201,7 @@ def recover_initial_resolution(image, cropped_indexes, random_indexes):
 
         return dims
 
-    def get_crop_idx(dims):
+    def get_crop_idx(image, dims):
         crops_idx = []
         for n, (a, b) in enumerate(dims):
             # Crops
@@ -235,13 +235,11 @@ def recover_initial_resolution(image, cropped_indexes, random_indexes):
     dims = calculate_balance_crop_pad(cropped_indexes, random_indexes)
 
     # cropped
-    zcrop, ycrop, xcrop = [x for x in get_crop_idx(dims)]
+    zcrop, ycrop, xcrop = [x for x in get_crop_idx(image, dims)]
     image = image[:, zcrop[0]:zcrop[1], ycrop[0]:ycrop[1], xcrop[0]:xcrop[1]]
-    print(f"Resolution afer cropping:, {image.shape}")
 
     # padded
     image = np.pad(image, get_pad_idx(dims))
-    print(f"Resolution afer padding:, {image.shape}")
 
     return image
 
