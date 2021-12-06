@@ -1,1 +1,6 @@
-*__pyache__/
+*__pycache__/
+*.idea/
+*DS_Store
+*.zip
+Experiment_*
+BraTS2021_*
