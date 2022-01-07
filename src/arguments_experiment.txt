@@ -16,10 +16,11 @@
   "crop_or_pad": [160, 224, 160],
   "fit_boundaries": true,
   "inverse_seq": false,
-  "loss": "dice",
+  "loss": "MONAI",
   "devices" : 0,
   "debug_mode": true,
   "val": 3,
   "com": "Experiment X",
-  "postprocessing": false
+  "postprocessing": false,
+  "path_dataset": "./../datasets/BRATS2021/TrainingData/"
 }
