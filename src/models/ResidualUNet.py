@@ -331,7 +331,6 @@ class seg_path(nn.Module):
         self.encoder = encoder
         self.decoder = decoder
         self.seg_out_block = seg_out_block
-        self.deep_supervision = False
 
     def forward(self, x):
         self.down_level1 = self.in_block(x)
