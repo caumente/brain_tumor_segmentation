@@ -2,6 +2,63 @@ import os
 import torch
 import logging
 from pathlib import Path
+from typing import List, Tuple
+from src.models.DeepUNet import DeepUNet
+from src.models.ResidualUNet import resunet_3d
+from src.models.ShallowUNet import ShallowUNet
+from src.models.Unet3D import UNet3D
+from src.models.VNet import VNet
+
+
+
+def create_model(
+        architecture: str,
+        sequences: List[str],
+        regions: Tuple[str],
+        width: int = 48,
+        save_folder: Path = None
+) -> torch.nn.Module:
+    """
+    This function implement the architecture chosen.
+
+    Params:
+    *******
+        - architecture: architecture chosen
+
+    Return:
+    *******
+        - et_present: it is true if the segmentation possess the ET region
+        - img_segmentation: stack of images of the regions
+    """
+
+    logging.info(f"Creating {architecture} model")
+    logging.info(f"Sequences for feeding the network: {len(sequences)} ({sequences})")
+
+    if architecture == '3DUNet':
+        model = UNet3D(sequences=len(sequences), regions=len(regions))
+    elif architecture == 'VNet':
+        model = VNet(sequences=len(sequences), regions=len(regions))
+    elif architecture == 'ResidualUNet':
+        model = resunet_3d(sequences=len(sequences), regions=len(regions), witdh=width)
+    elif architecture == 'ShallowUNet':
+        model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
+    elif architecture == 'DeepUNet':
+        model = DeepUNet(sequences=len(sequences), regions=len(regions), width=width)
+    else:
+        model = torch.nn.Module()
+        assert "The model selected does not exist. " \
+               "Please, chose some of the following architectures: 3DUNet, VNet, ResidualUNet, ShallowUNet, DeepUNet"
+
+    # Saving the model scheme in a .txt file
+    if save_folder is not None:
+        model_file = save_folder / "model.txt"
+        with model_file.open("w") as f:
+            print(model, file=f)
+
+    logging.info(model)
+    logging.info(f"Total number of trainable parameters: {count_parameters(model)}")
+
+    return model
 
 
 def count_parameters(model: torch.nn.Module) -> int:
