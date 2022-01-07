@@ -1,5 +1,5 @@
 import os
-import yaml
+import json
 import torch
 import random
 import pprint
@@ -32,9 +32,9 @@ def save_args(args: argparse.Namespace):
     logging.info(f"Execution for configuration:")
     pprint.pprint(config)
 
-    config_file = args.save_folder / "config_file.yaml"
+    config_file = args.save_folder / "config_file.json"
     with config_file.open("w") as file:
-        yaml.dump(config, file)
+        json.dump(config, file, indent=4)
 
 
 def stats_tensor(tensor: torch.Tensor, detach: bool = False, decimals: int = 6):
@@ -178,7 +178,7 @@ def generate_segmentations(
     """
 
     metrics_list = []
-    for i, batch in enumerate(data_loader):
+    for _, batch in enumerate(data_loader):
 
         # Getting image attributes
         sequences = batch["sequences"]
