@@ -115,7 +115,7 @@ class Brats(Dataset):
         if self.has_ground_truth:
             et_present, ground_truth = self.labels_to_regions(segmentation=ground_truth)
         else:
-            ground_truth = np.zeros((len(self.regions), self.crop_or_pad[0], self.crop_or_pad[1], self.crop_or_pad[2]))
+            ground_truth = np.zeros((len(self.regions), sequences.shape[1], sequences.shape[2], sequences.shape[3]))
 
         # Fit the sequences to the brain boundaries by cropping and the cropping/padding to the resolution defined
         if self.fit_boundaries:
@@ -126,7 +126,8 @@ class Brats(Dataset):
         sequences, ground_truth, random_indexes = random_pad_or_crop(sequences=sequences, segmentation=ground_truth, target_size=self.crop_or_pad)
 
         # Type casting for sequences and ground truth
-        sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
+        # sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
+        sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float32"), ground_truth.astype("bool")]]
 
         return dict(
             patient_id=patient_info["id"],
@@ -220,7 +221,7 @@ def recover_initial_resolution(image, cropped_indexes, random_indexes):
     def get_pad_idx(dims):
 
         pads_idx = [(0, 0)]
-        for n, (a, b) in enumerate(dims):
+        for a, b in dims:
             # Pads
             if a <= 0:
                 a = 0
@@ -250,7 +251,7 @@ def get_datasets(
         seed,
         debug_mode,
         has_ground_truth=True,
-        path_images="./datasets/training/",
+        path_images="",
         normalization=True,
         low_norm_percentile=1,
         high_norm_percentile=99,
@@ -266,11 +267,18 @@ def get_datasets(
     log.info(f"Images are contained in the following path: {path_images}")
 
     # Splitting the path into train_path, val_path and test_path
-    mapping = pd.read_csv("./src/dataset/train_mapping.csv")
-    train_path, val_path, test_path = train_test_val_split(mapping=mapping,
-                                                           patients_path=patients_dir,
-                                                           seed=seed,
-                                                           train_size=0.8)
+    if "BRATS2021" in str(path_images):
+        mapping = pd.DataFrame(patients_dir, columns=["patients"])
+        train_path, val_path, test_path = train_test_val_split_BraTS_2021(mapping=mapping,
+                                                                          patients_path=patients_dir,
+                                                                          seed=seed,
+                                                                          train_size=0.8)
+    else:
+        mapping = pd.read_csv("./src/dataset/train_mapping.csv")
+        train_path, val_path, test_path = train_test_val_split_BraTS_2020(mapping=mapping,
+                                                                          patients_path=patients_dir,
+                                                                          seed=seed,
+                                                                          train_size=0.8)
 
     # Creating the train-validation-test datasets
     train_dataset = Brats(patients_path=train_path,
@@ -317,7 +325,7 @@ def get_datasets(
     return train_dataset, val_dataset, test_dataset
 
 
-def train_test_val_split(mapping, patients_path, seed, train_size=0.8):
+def train_test_val_split_BraTS_2020(mapping, patients_path, seed, train_size=0.8):
     """ This function splits the dataset into train-val-test based on a train_size."""
 
     mapping[['-', '--', 'name']] = mapping['BraTS_2020_subject_ID'].str.split("_", expand=True)
@@ -326,6 +334,25 @@ def train_test_val_split(mapping, patients_path, seed, train_size=0.8):
     train, val_ = train_test_split(mapping, train_size=train_size, random_state=int(seed), shuffle=True,
                                    stratify=mapping['Grade'])
     val, test = train_test_split(val_, test_size=0.5, random_state=int(seed), shuffle=True, stratify=val_['Grade'])
+    train_idx, val_idx, test_idx = train.index, val.index, test.index
+    log.info(f"Patients used for training:\n {train}")
+    log.info(f"Patients used for validating:\n {val}")
+    log.info(f"Patients used for testing:\n {test}")
+
+    train = [patients_path[i] for i in train_idx]
+    val = [patients_path[i] for i in val_idx]
+    test = [patients_path[i] for i in test_idx]
+
+    return train, val, test
+
+
+
+def train_test_val_split_BraTS_2021(mapping, patients_path, seed, train_size=0.8):
+    """ This function splits the dataset into train-val-test based on a train_size."""
+
+
+    train, val_ = train_test_split(mapping, train_size=train_size, random_state=int(seed), shuffle=True)
+    val, test = train_test_split(val_, test_size=0.5, random_state=int(seed), shuffle=True)
     train_idx, val_idx, test_idx = train.index, val.index, test.index
     log.info(f"Patients used for training:\n {train}")
     log.info(f"Patients used for validating:\n {val}")
