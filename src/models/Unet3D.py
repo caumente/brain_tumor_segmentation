@@ -56,3 +56,21 @@ class UNet3D(nn.Module):
         out = self.output(d1)
 
         return out
+
+
+
+def test():
+    seq_input = torch.rand(1, 4, 160, 224, 160)
+    seq_ouput = torch.rand(1, 3, 160, 224, 160)
+
+    model = UNet3D(sequences=4, regions=3)
+    preds = model(seq_input)
+
+    print(seq_input.shape)
+    print(preds.shape)
+
+    assert seq_ouput.shape == preds.shape
+
+
+if __name__ == "__main__":
+    test()
