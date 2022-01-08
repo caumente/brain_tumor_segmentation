@@ -5,5 +5,5 @@
 *.zip
 *.ipynb
 experiments/
-BraTS2021_*
+BraTS20*
 test/
