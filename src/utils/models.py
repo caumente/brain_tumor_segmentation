@@ -8,7 +8,8 @@ from src.models.ResidualUNet import resunet_3d
 from src.models.ShallowUNet import ShallowUNet
 from src.models.Unet3D import UNet3D
 from src.models.VNet import VNet
-
+from ranger import Ranger
+from monai.losses import DiceLoss
 
 
 def create_model(
@@ -118,3 +119,42 @@ def get_lr(optimizer):
     """
     for param_group in optimizer.param_groups:
         return param_group['lr']
+
+
+
+
+def optimizer_loading(
+        model: torch.nn.Module,
+        optimizer: str,
+        learning_rate: float
+) -> torch.optim:
+
+    if optimizer == "adam":
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, eps=1e-4)
+    elif optimizer == "sgd":
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, nesterov=True)
+    elif optimizer == "adamw":
+        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+    elif optimizer == "ranger":
+        optimizer = Ranger(model.parameters(), lr=learning_rate)
+    else:
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, nesterov=True)
+
+    return optimizer
+
+
+
+def loss_function_loading(
+        loss_function: str = "dice",
+        n_classes: Tuple[str] = ("et", "tc", "wt"),
+        device='cpu'
+# ) -> EDiceLoss:
+):
+    # TODO: implement more loss functions
+    if loss_function == 'dice':
+        # criterion = EDiceLoss(classes=n_classes).to(device)
+        loss_function = DiceLoss(include_background=True, sigmoid=True, smooth_nr=1, smooth_dr=1, squared_pred=True).to(device)
+    else:
+        assert "Dice loss function is the only accepted"
+
+    return loss_function
