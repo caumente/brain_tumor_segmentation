@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Tuple, List
-
+import json
 import numpy as np
 import pandas as pd
 import torch
@@ -25,7 +25,7 @@ from src.models.DeepUNet import DeepUNet
 from src.models.ResidualUNet import resunet_3d
 from src.models.ShallowUNet import ShallowUNet
 from src.models.Unet3D import UNet3D
-from src.models.VNet import get_Vnet
+from src.models.VNet import VNet
 from src.utils.metrics import save_metrics
 from src.utils.miscellany import AverageMeter
 from src.utils.miscellany import ProgressMeter
@@ -34,58 +34,68 @@ from src.utils.miscellany import init_log
 from src.utils.miscellany import save_args
 from src.utils.models import save_checkpoint, load_checkpoint, count_parameters
 
-parser = argparse.ArgumentParser(description='Brats Training')
 
-# Architecture parameters
-parser.add_argument('--architecture', default='DeepUNet',
-                    choices=['3DUNet', 'VNet', 'ResidualUNet', 'ShallowUNet', 'DeepUNet'],
-                    help='Model architecture (default: DeepUNet)')
-parser.add_argument('--width', default=48, type=int, choices=[12, 24, 48],
-                    help='Width of first convolutional kernel. Doubled at each U-Level (default: 48)')
-parser.add_argument('--sequences', nargs="+", default=["_t1", "_t1ce", "_t2", "_flair"],
-                    help='Sequences used for feeding the model (default: --sequences _t1 _t1ce _t2 _flair)')
-parser.add_argument('--regions', nargs="+", default=["et", "tc", "wt"],
-                    help='Subregions to assess (default: --regions et tc wt)')
-# Hyperparameters
-parser.add_argument('--start_epoch', default=0, type=int,
-                    help='Start epoch number (default: 0). Useful on restarts.)')
-parser.add_argument('--epochs', default=400, type=int,
-                    help='Number of total epochs (default: 400)')
-parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float, dest='lr',
-                    help='Initial learning rate (default: 1e-4)')
-parser.add_argument('--optimizer', choices=['adam', 'sgd', 'ranger', 'adamw'], default='ranger',
-                    help="Optimizer (default: Ranger)")
-parser.add_argument('--workers', default=12, type=int,
-                    help='Number of data loading workers (default: 12)')
-# Dataset settings
-parser.add_argument('--seed', default=9588,
-                    help="Seed used to split the dataset in train-val-test sets")
-parser.add_argument('--batch_size', default=1, type=int,
-                    help='Batch size (default: 1)')
-parser.add_argument('--normalization', action="store_true",
-                    help='Boolean to decide weather the images are normalized or not')
-parser.add_argument('--low_norm', default=1, type=int,
-                    help='Lower percentile to clip the images in the normalization process')
-parser.add_argument('--high_norm', default=99, type=int,
-                    help='Upper percentile to clip the images in the normalization process')
-parser.add_argument('--crop_or_pad', nargs="+", default=[155, 240, 240],
-                    help='Resolution of the images after random crops')
-parser.add_argument('--fit_boundaries', action="store_true",
-                    help='Boolean to decide weather remove as much as possible background or not before cropping')
-parser.add_argument('--inverse_seq', action="store_true",
-                    help='Boolean to decide weather using sequences and its inverses images')
-# Loss and metrics settings
-parser.add_argument('--loss', choices=['dice', 'generalized_dice', 'TverskyLoss'], default='dice')
-# Others
-parser.add_argument('--devices', required=True, type=str,
-                    help='Set the CUDA_VISIBLE_DEVICES env var from this string')
-parser.add_argument('--debug_mode', action="store_true")
-parser.add_argument('--val', default=3, type=int,
-                    help="how often to perform validation step (default: )")
-parser.add_argument('--com',
-                    help="add a comment to this run!")
-parser.add_argument('--postprocessing', default=False, type=bool,
-                    help='Postprocessing')
+def load_parameters(filepath=None):
+    parser = argparse.ArgumentParser(description='Brats Training')
+    arguments = parser.parse_args()
+
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as f:
+            arguments.__dict__ = json.load(f)
+    else:
+
+        # Architecture parameters
+        parser.add_argument('--architecture', default='DeepUNet',
+                            choices=['3DUNet', 'VNet', 'ResidualUNet', 'ShallowUNet', 'DeepUNet'],
+                            help='Model architecture (default: DeepUNet)')
+        parser.add_argument('--width', default=48, type=int, choices=[12, 24, 48],
+                            help='Width of first convolutional kernel. Doubled at each U-Level (default: 48)')
+        parser.add_argument('--sequences', nargs="+", default=["_t1", "_t1ce", "_t2", "_flair"],
+                            help='Sequences used for feeding the model (default: --sequences _t1 _t1ce _t2 _flair)')
+        parser.add_argument('--regions', nargs="+", default=["et", "tc", "wt"],
+                            help='Subregions to assess (default: --regions et tc wt)')
+        # Hyperparameters
+        parser.add_argument('--start_epoch', default=0, type=int,
+                            help='Start epoch number (default: 0). Useful on restarts.)')
+        parser.add_argument('--epochs', default=400, type=int,
+                            help='Number of total epochs (default: 400)')
+        parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float, dest='lr',
+                            help='Initial learning rate (default: 1e-4)')
+        parser.add_argument('--optimizer', choices=['adam', 'sgd', 'ranger', 'adamw'], default='ranger',
+                            help="Optimizer (default: Ranger)")
+        parser.add_argument('--workers', default=12, type=int,
+                            help='Number of data loading workers (default: 12)')
+        # Dataset settings
+        parser.add_argument('--seed', default=9588,
+                            help="Seed used to split the dataset in train-val-test sets")
+        parser.add_argument('--batch_size', default=1, type=int,
+                            help='Batch size (default: 1)')
+        parser.add_argument('--normalization', action="store_true",
+                            help='Boolean to decide weather the images are normalized or not')
+        parser.add_argument('--low_norm', default=1, type=int,
+                            help='Lower percentile to clip the images in the normalization process')
+        parser.add_argument('--high_norm', default=99, type=int,
+                            help='Upper percentile to clip the images in the normalization process')
+        parser.add_argument('--crop_or_pad', nargs="+", default=[155, 240, 240],
+                            help='Resolution of the images after random crops')
+        parser.add_argument('--fit_boundaries', action="store_true",
+                            help='Boolean to decide weather remove as much as possible background or not before cropping')
+        parser.add_argument('--inverse_seq', action="store_true",
+                            help='Boolean to decide weather using sequences and its inverses images')
+        # Loss and metrics settings
+        parser.add_argument('--loss', choices=['dice', 'generalized_dice', 'TverskyLoss'], default='dice')
+        # Others
+        parser.add_argument('--devices', required=True, type=str,
+                            help='Set the CUDA_VISIBLE_DEVICES env var from this string')
+        parser.add_argument('--debug_mode', action="store_true")
+        parser.add_argument('--val', default=3, type=int,
+                            help="how often to perform validation step (default: )")
+        parser.add_argument('--com',
+                            help="add a comment to this run!")
+        parser.add_argument('--postprocessing', default=False, type=bool,
+                            help='Postprocessing')
+
+    return arguments
 
 
 def main(args):
@@ -281,7 +291,7 @@ def model_loading(
     if architecture == '3DUNet':
         model = UNet3D(sequences=len(sequences), regions=len(regions))
     elif architecture == 'VNet':
-        model = get_Vnet(sequences=len(sequences), regions=len(regions))
+        model = VNet(sequences=len(sequences), regions=len(regions))
     elif architecture == 'ResidualUNet':
         model = resunet_3d(sequences=len(sequences), regions=len(regions), witdh=width)
     elif architecture == 'ShallowUNet':
@@ -440,6 +450,7 @@ def step(
 
 
 if __name__ == '__main__':
-    arguments = parser.parse_args()
-    os.environ['CUDA_VISIBLE_DEVICES'] = arguments.devices
+    arguments = load_parameters("arguments_experiment.txt")
+    print(arguments)
+    #os.environ['CUDA_VISIBLE_DEVICES'] = arguments.devices
     main(arguments)
