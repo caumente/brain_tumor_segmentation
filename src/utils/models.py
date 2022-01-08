@@ -1,4 +1,6 @@
 import os
+import sys
+
 import torch
 import logging
 from pathlib import Path
@@ -10,6 +12,7 @@ from src.models.Unet3D import UNet3D
 from src.models.VNet import VNet
 from ranger import Ranger
 from monai.losses import DiceLoss
+from src.loss import EDiceLoss
 
 
 def create_model(
@@ -152,9 +155,10 @@ def loss_function_loading(
 ):
     # TODO: implement more loss functions
     if loss_function == 'dice':
-        # criterion = EDiceLoss(classes=n_classes).to(device)
-        loss_function = DiceLoss(include_background=True, sigmoid=True, smooth_nr=1, smooth_dr=1, squared_pred=True).to(device)
+        # loss_function = EDiceLoss(classes=n_classes).to(device)
+        loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, smooth_nr=1, smooth_dr=1, squared_pred=True).to(device)
     else:
-        assert "Dice loss function is the only accepted"
+        print("Dice loss function is the only accepted")
+        sys.exit()
 
-    return loss_function
+    return loss_function_criterion

@@ -4,6 +4,6 @@
 *DS_Store
 *.zip
 *.ipynb
-Experiment_*
+experiments/
 BraTS2021_*
 test/
