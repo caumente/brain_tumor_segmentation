@@ -107,7 +107,7 @@ def load_checkpoint(checkpoint_path: str, model: torch.nn.Module):
         checkpoint = torch.load(checkpoint_path)
         epoch = checkpoint['epoch']
         model.load_state_dict(checkpoint['state_dict'])
-        logging.info(f"\n\t-> Loaded checkpoint '{checkpoint_path}'. Last epoch: {epoch}")
+        logging.info(f"Loaded checkpoint '{checkpoint_path}'. Last epoch: {epoch}")
     else:
         raise ValueError(f"\n\t-> No checkpoint found at '{checkpoint_path}'")
 

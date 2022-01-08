@@ -1,4 +1,5 @@
 import logging as log
+import os
 from pathlib import Path
 from typing import List
 from typing import Tuple
@@ -274,7 +275,7 @@ def get_datasets(
                                                                           seed=seed,
                                                                           train_size=0.8)
     else:
-        mapping = pd.read_csv("./src/dataset/train_mapping.csv")
+        mapping = pd.read_csv(f"{path_images}/name_mapping.csv")
         train_path, val_path, test_path = train_test_val_split_BraTS_2020(mapping=mapping,
                                                                           patients_path=patients_dir,
                                                                           seed=seed,
