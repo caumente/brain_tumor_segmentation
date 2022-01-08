@@ -10,6 +10,7 @@ from skimage import util
 from sklearn.model_selection import train_test_split
 from torch import from_numpy
 from torch.utils.data.dataset import Dataset
+from torch.utils.data import DataLoader
 
 from src.utils.dataset import fit_brain_boundaries
 from src.utils.dataset import cleaning_outliers_and_scaler
@@ -364,3 +365,27 @@ def train_test_val_split_BraTS_2021(mapping, patients_path, seed, train_size=0.8
     test = [patients_path[i] for i in test_idx]
 
     return train, val, test
+
+
+
+def dataset_loading(args):
+    train_dataset, val_dataset, test_dataset = get_datasets(sequences=args.sequences,
+                                                            regions=args.regions,
+                                                            seed=args.seed,
+                                                            debug_mode=args.debug_mode,
+                                                            path_images=args.path_dataset,
+                                                            has_ground_truth=True,
+                                                            normalization=args.normalization,
+                                                            low_norm_percentile=args.low_norm,
+                                                            high_norm_percentile=args.high_norm,
+                                                            crop_or_pad=args.crop_or_pad,
+                                                            fit_boundaries=args.fit_boundaries,
+                                                            inverse_seq=args.inverse_seq)
+
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+                                               num_workers=args.workers, pin_memory=False, drop_last=True)
+    val_loader = DataLoader(val_dataset, batch_size=1, shuffle=True, pin_memory=False,
+                                             num_workers=args.workers, )
+    test_loader = DataLoader(test_dataset, batch_size=1, num_workers=args.workers)
+
+    return train_loader, val_loader, test_loader

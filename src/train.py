@@ -1,36 +1,28 @@
 import argparse
+import json
 import logging
 import os
-import pathlib
-import random
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Tuple
-import json
+
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn.parallel
-import torch.optim
-import torch.utils.data
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from ranger import Ranger
+from torch.utils.data import DataLoader
+
 from src.dataset.DataAugmenter import DataAugmenter
+from src.dataset.brats import dataset_loading
 from src.loss import EDiceLoss
-from src.utils.models import create_model
 from src.utils.metrics import save_metrics
-from src.utils.miscellany import AverageMeter
-from src.utils.miscellany import ProgressMeter
-from src.utils.miscellany import generate_segmentations
-from src.utils.miscellany import init_log
-from src.utils.miscellany import save_args
-from src.utils.miscellany import seed_everything
-from src.utils.models import save_checkpoint, load_checkpoint, count_parameters
-from monai.losses import DiceLoss
-from src.dataset.brats import get_datasets
-from src.utils.models import optimizer_loading, loss_function_loading
+from src.utils.miscellany import AverageMeter, ProgressMeter
+from src.utils.miscellany import init_log, save_args, seed_everything, generate_segmentations
+from src.utils.models import create_model
+from src.utils.models import save_checkpoint, load_checkpoint, optimizer_loading, loss_function_loading
+
 
 def load_parameters(filepath=None):
     parser = argparse.ArgumentParser(description='Brats Training')
@@ -117,7 +109,7 @@ def main(args):
                     f"_{args.optimizer}" \
                     f"_lr{args.lr}" \
                     f"_epochs{args.epochs}"
-    args.save_folder = pathlib.Path(f"./../experiments/{args.exp_name}")
+    args.save_folder = Path(f"./../experiments/{args.exp_name}")
     args.save_folder.mkdir(parents=True, exist_ok=True)
     args.seg_folder = args.save_folder / "segs"
     args.seg_folder.mkdir(parents=True, exist_ok=True)
@@ -255,35 +247,6 @@ def main(args):
     logging.info(f"\nTime spend.. {(end_time - init_time) / 60:.2f} minutes\n")
 
 
-
-
-
-
-
-
-def dataset_loading(args):
-    train_dataset, val_dataset, test_dataset = get_datasets(sequences=args.sequences,
-                                                            regions=args.regions,
-                                                            seed=args.seed,
-                                                            debug_mode=args.debug_mode,
-                                                            path_images=args.path_dataset,
-                                                            has_ground_truth=True,
-                                                            normalization=args.normalization,
-                                                            low_norm_percentile=args.low_norm,
-                                                            high_norm_percentile=args.high_norm,
-                                                            crop_or_pad=args.crop_or_pad,
-                                                            fit_boundaries=args.fit_boundaries,
-                                                            inverse_seq=args.inverse_seq)
-
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
-                                               num_workers=args.workers, pin_memory=False, drop_last=True)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=True, pin_memory=False,
-                                             num_workers=args.workers, )
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, num_workers=args.workers)
-
-    return train_loader, val_loader, test_loader
-
-
 def step(
         data_loader: torch.utils.data.Dataset,
         model: torch.nn.Module,
@@ -318,7 +281,8 @@ def step(
         patient_id, inputs, ground_truth = batch["patient_id"], batch["sequences"].to(device), batch["ground_truth"].to(device)
 
         #  <------------ FORWARD PASS --------------->
-        with autocast(enabled=False):
+        autocast_bool = True if device != 'cpu' else False
+        with autocast(enabled=autocast_bool):
 
             # If train dada augmentation, else just prediction
             if mode == "train":
