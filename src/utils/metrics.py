@@ -6,13 +6,13 @@ import torch
 from numpy import logical_and as l_and, logical_not as l_not
 from scipy.spatial.distance import directed_hausdorff
 
-HAUSSDORF = "haussdorf"
-DICE = "dice"
-SENS = "sens"
-SPEC = "spec"
-ACC = "acc"
-JACC = "jaccard"
-PREC = "prec"
+HAUSSDORF = "Haussdorf distance"
+DICE = "DICE"
+SENS = "Sensitivity"
+SPEC = "Specificity"
+ACC = "Accuracy"
+JACC = "Jaccard index"
+PREC = "Precision"
 METRICS = [HAUSSDORF, DICE, SENS, SPEC, ACC, JACC, PREC]
 
 

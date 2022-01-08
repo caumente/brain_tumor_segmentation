@@ -13,7 +13,8 @@ from SimpleITK import GetImageFromArray, WriteImage
 from ..utils.metrics import METRICS
 from ..utils.metrics import calculate_metrics
 from ..dataset.brats import recover_initial_resolution
-
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 def save_args(args: argparse.Namespace):
     """
@@ -151,7 +152,14 @@ def generate_boxplot_metrics(metrics_df: pd.DataFrame, path: str):
     """
     os.mkdir(path)
     for metric in METRICS:
-        metrics_df.boxplot(metric, by="region").get_figure().savefig(f"{path}{metric}.png")
+        boxplot = metrics_df.boxplot(column=metric, by="region", figsize=(12, 12), fontsize=20, grid=False).get_figure()
+        # boxplot.set(title='')
+        sns.despine(left=False, bottom=False)
+        plt.xlabel("")
+        plt.ylabel(metric, fontsize=20)
+        # boxplot.suptitle('')
+        plt.savefig(f"{path}{metric}.png")
+
 
 
 def generate_segmentations(
