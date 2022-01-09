@@ -241,7 +241,7 @@ def main(args):
         logging.info("**********************************************************\n")
 
         load_checkpoint(f'{str(args.save_folder)}/model_best.pth.tar', model)
-        generate_segmentations(test_loader, model, args)
+        generate_segmentations(test_loader, model, args, device=device)
     except KeyboardInterrupt:
         logging.info("Stopping right now!")
 

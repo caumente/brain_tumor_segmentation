@@ -165,7 +165,8 @@ def generate_boxplot_metrics(metrics_df: pd.DataFrame, path: str):
 def generate_segmentations(
         data_loader: torch.utils.data.dataloader.DataLoader,
         model: torch.nn.Module,
-        args: argparse.Namespace
+        args: argparse.Namespace,
+        device="cpu"
 ):
     """
     This function takes a model and torch DataLoader to generate a segmentation. It also store the sequences and
@@ -197,7 +198,7 @@ def generate_segmentations(
         logging.info(f"Processing patient {patient_id} ...")
 
         # Predicting segmentation
-        segmentation = model_prediction(model=model, sequences=sequences)
+        segmentation = model_prediction(model=model, sequences=sequences, device=device)
         logging.info(f"Segmentation calculated...")
 
         # Evaluating ground truth and segmentation
