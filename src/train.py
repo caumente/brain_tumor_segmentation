@@ -76,7 +76,7 @@ def load_parameters(filepath=None):
         # Loss and metrics settings
         parser.add_argument('--loss', choices=['dice', 'generalized_dice', 'TverskyLoss'], default='dice')
         # Others
-        parser.add_argument('--devices', required=True, type=str,
+        parser.add_argument('--devices', default=1, required=True, type=str,
                             help='Set the CUDA_VISIBLE_DEVICES env var from this string')
         parser.add_argument('--debug_mode', action="store_true")
         parser.add_argument('--val', default=3, type=int,
@@ -92,7 +92,7 @@ def load_parameters(filepath=None):
 def main(args):
 
     # This process can not be carry out without a GPU
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
     num_gpus = torch.cuda.device_count()
     if num_gpus == 0:
         #raise RuntimeWarning("This process can not be carry out without a GPU")
@@ -129,17 +129,17 @@ def main(args):
         args.sequences = 2 * args.sequences
 
     # Implementing the model and turning it from cpu to gpu
-    my_model = create_model(architecture=args.architecture, sequences=args.sequences, regions=args.regions,
+    model = create_model(architecture=args.architecture, sequences=args.sequences, regions=args.regions,
                              width=args.width, save_folder=args.save_folder)
-    my_model = my_model.to(device)
-    # my_model = my_model.to(device) if num_gpus == 1 else torch.nn.DataParallel(my_model).to(device)
+    model = model.to(device)
+    # model = model.to(device) if num_gpus == 1 else torch.nn.DataParallel(model).to(device)
 
     # Implementing loss function and metric
     criterion = loss_function_loading(loss_function=args.loss)
     metric = EDiceLoss(classes=args.regions).to(device).metric
 
     # optimizer
-    optimizer = optimizer_loading(model=my_model, optimizer=args.optimizer, learning_rate=args.lr)
+    optimizer = optimizer_loading(model=model, optimizer=args.optimizer, learning_rate=args.lr)
 
     # Custom configuration for a debug run
     if args.debug_mode:
@@ -167,10 +167,10 @@ def main(args):
             ts = time.perf_counter()
 
             # Training phase
-            my_model.train()
-            training_loss = step(train_loader, my_model, criterion, metric, optimizer, epoch,
+            model.train()
+            training_loss = step(train_loader, model, criterion, metric, optimizer, epoch,
                                  args.regions, scaler, save_folder=args.save_folder,
-                                 patients_perf=patients_perf, device=device)
+                                 patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool)
             with open(f"{args.save_folder}/Progress/progressTrain.txt", mode="a") as f:
                 print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_train': training_loss}, file=f)
 
@@ -180,11 +180,11 @@ def main(args):
 
             # Validation phase
             if (epoch + 1) % args.val == 0:
-                my_model.eval()
+                model.eval()
                 with torch.no_grad():
-                    validation_loss = step(val_loader, my_model, criterion, metric, optimizer, epoch,
+                    validation_loss = step(val_loader, model, criterion, metric, optimizer, epoch,
                                            args.regions, save_folder=args.save_folder,
-                                           patients_perf=patients_perf)
+                                           patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool)
                     with open(f"{args.save_folder}/Progress/progressVal.txt", mode="a") as f:
                         print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_val': validation_loss},
                               file=f)
@@ -197,7 +197,7 @@ def main(args):
                         dict(
                             epoch=epoch,
                             arch=args.architecture,
-                            state_dict=my_model.state_dict(),
+                            state_dict=model.state_dict(),
                             optimizer=optimizer.state_dict(),
                             scheduler=scheduler.state_dict(),
                         ),
@@ -226,7 +226,7 @@ def main(args):
             dict(
                 epoch=args.epochs,
                 arch=args.architecture,
-                state_dict=my_model.state_dict(),
+                state_dict=model.state_dict(),
                 optimizer=optimizer.state_dict()
             ),
             checkpoint_path=args.save_folder)
@@ -240,8 +240,8 @@ def main(args):
         logging.info("********** START VALIDATION OVER TEST DATASET ************")
         logging.info("**********************************************************\n")
 
-        load_checkpoint(f'{str(args.save_folder)}/model_best.pth.tar', my_model)
-        generate_segmentations(test_loader, my_model, args)
+        load_checkpoint(f'{str(args.save_folder)}/model_best.pth.tar', model)
+        generate_segmentations(test_loader, model, args)
     except KeyboardInterrupt:
         logging.info("Stopping right now!")
 
@@ -262,7 +262,8 @@ def step(
         scheduler=None,
         save_folder=None,
         patients_perf=None,
-        device='cpu'
+        device='cpu',
+        auto_cast_bool = False
 ):
 
     #  <------------ SETUP --------------->
@@ -284,9 +285,7 @@ def step(
         patient_id, inputs, ground_truth = batch["patient_id"], batch["sequences"].to(device), batch["ground_truth"].to(device)
 
         #  <------------ FORWARD PASS --------------->
-        autocast_bool = True if device != 'cpu' else False
-        with autocast(enabled=autocast_bool):
-
+        with autocast(enabled=auto_cast_bool):
             # If train dada augmentation, else just prediction
             if mode == "train":
                 data_aug = DataAugmenter(probability=0.4).to(device)
