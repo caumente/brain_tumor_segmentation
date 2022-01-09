@@ -50,7 +50,8 @@ class Brats(Dataset):
             crop_or_pad: tuple = (155, 240, 240),
             fit_boundaries: bool = True,
             inverse_seq: bool = False,
-            debug_mode: bool = False
+            debug_mode: bool = False,
+            auto_cast_bool: bool = False
     ):
         super(Brats, self).__init__()
 
@@ -68,6 +69,7 @@ class Brats(Dataset):
         self.fit_boundaries = fit_boundaries
         self.inverse_sec = inverse_seq
         self.debug_mode = debug_mode
+        self.auto_cast_bool = auto_cast_bool
         self.data = []
 
         for patient_path in patients_path:
@@ -128,8 +130,10 @@ class Brats(Dataset):
         sequences, ground_truth, random_indexes = random_pad_or_crop(sequences=sequences, segmentation=ground_truth, target_size=self.crop_or_pad)
 
         # Type casting for sequences and ground truth
-        # sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
-        sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float32"), ground_truth.astype("bool")]]
+        if self.auto_cast_bool:
+            sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
+        else:
+            sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float32"), ground_truth.astype("bool")]]
 
         return dict(
             patient_id=patient_info["id"],
