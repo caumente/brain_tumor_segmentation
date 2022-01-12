@@ -10,7 +10,8 @@ from src.models.ResidualUNet import resunet_3d
 from src.models.ShallowUNet import ShallowUNet
 from src.models.Unet3D import UNet3D
 from src.models.VNet import VNet
-#from ranger import Ranger
+from ranger import Ranger
+from ranger21 import Ranger21
 from monai.losses import DiceLoss
 from src.loss import EDiceLoss
 
@@ -129,7 +130,9 @@ def get_lr(optimizer):
 def optimizer_loading(
         model: torch.nn.Module,
         optimizer: str,
-        learning_rate: float
+        learning_rate: float,
+        num_epochs: int,
+        num_batches_per_epoch: int
 ) -> torch.optim:
 
     if optimizer == "adam":
@@ -140,6 +143,9 @@ def optimizer_loading(
         optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
     elif optimizer == "ranger":
         optimizer = Ranger(model.parameters(), lr=learning_rate)
+    elif optimizer == "ranger21":
+        optimizer = Ranger21(model.parameters(), lr=learning_rate, num_epochs=num_epochs,
+                             num_batches_per_epoch=num_batches_per_epoch, warmdown_min_lr=1e-6,)
     else:
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, nesterov=True)
 

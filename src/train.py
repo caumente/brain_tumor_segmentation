@@ -138,16 +138,17 @@ def main(args):
     criterion = loss_function_loading(loss_function=args.loss)
     metric = EDiceLoss(classes=args.regions).to(device).metric
 
+    # Loading datasets train-val-test
+    train_loader, val_loader, test_loader = dataset_loading(args)
+
     # optimizer
-    optimizer = optimizer_loading(model=model, optimizer=args.optimizer, learning_rate=args.lr)
+    optimizer = optimizer_loading(model=model, optimizer=args.optimizer, learning_rate=args.lr, num_epochs=args.epochs,
+                                  num_batches_per_epoch=len(train_loader))
 
     # Custom configuration for a debug run
     if args.debug_mode:
         args.epochs = 1
         args.val = 1
-
-    # Loading datasets train-val-test
-    train_loader, val_loader, test_loader = dataset_loading(args)
 
     # Gradient scaler
     logging.info("Using gradient scaling over losses to prevent underflow in backward pass.")
@@ -214,7 +215,7 @@ def main(args):
 
             # Early stopping
             if (epoch / args.epochs > 0.25) and (epochs_not_improve > 30):
-                logging.info("\n Early Stopping now! The model hasn't improved in last 15 updates.\n")
+                logging.info("\n Early Stopping now! The model hasn't improved in last 30 updates.\n")
                 break
 
         except KeyboardInterrupt:

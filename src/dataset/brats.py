@@ -263,7 +263,8 @@ def get_datasets(
         high_norm_percentile=99,
         crop_or_pad=(155, 240, 240),
         fit_boundaries=True,
-        inverse_seq=False
+        inverse_seq=False,
+        auto_cast_bool=True
 ):
 
     # Checking if the path where the images are exist
@@ -297,7 +298,8 @@ def get_datasets(
                           crop_or_pad=crop_or_pad,
                           fit_boundaries=fit_boundaries,
                           inverse_seq=inverse_seq,
-                          debug_mode=debug_mode)
+                          debug_mode=debug_mode,
+                          auto_cast_bool=auto_cast_bool)
     val_dataset = Brats(patients_path=val_path,
                         sequences=sequences,
                         has_ground_truth=has_ground_truth,
@@ -308,7 +310,8 @@ def get_datasets(
                         crop_or_pad=crop_or_pad,
                         fit_boundaries=fit_boundaries,
                         inverse_seq=inverse_seq,
-                        debug_mode=debug_mode)
+                        debug_mode=debug_mode,
+                        auto_cast_bool=auto_cast_bool)
     test_dataset = Brats(patients_path=test_path,
                          sequences=sequences,
                          has_ground_truth=has_ground_truth,
@@ -319,7 +322,8 @@ def get_datasets(
                          crop_or_pad=crop_or_pad,
                          fit_boundaries=fit_boundaries,
                          inverse_seq=inverse_seq,
-                         debug_mode=debug_mode)
+                         debug_mode=debug_mode,
+                        auto_cast_bool=auto_cast_bool)
 
     log.info(f"Size of train dataset: {len(train_dataset)}")
     log.info(f"Shape of images used for training: {train_dataset[0]['sequences'].shape}")
@@ -384,7 +388,8 @@ def dataset_loading(args):
                                                             high_norm_percentile=args.high_norm,
                                                             crop_or_pad=args.crop_or_pad,
                                                             fit_boundaries=args.fit_boundaries,
-                                                            inverse_seq=args.inverse_seq)
+                                                            inverse_seq=args.inverse_seq,
+                                                            auto_cast_bool=args.auto_cast_bool)
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                                num_workers=args.workers, pin_memory=False, drop_last=True)
