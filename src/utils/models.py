@@ -161,8 +161,8 @@ def loss_function_loading(
 ):
     # TODO: implement more loss functions
     if loss_function == 'dice':
-        # loss_function = EDiceLoss(classes=n_classes).to(device)
-        loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, smooth_nr=1, smooth_dr=1, squared_pred=True).to(device)
+        loss_function_criterion = EDiceLoss(classes=n_classes).to(device)
+        #loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, smooth_nr=1, smooth_dr=1, squared_pred=True).to(device)
     else:
         print("Dice loss function is the only accepted")
         sys.exit()
