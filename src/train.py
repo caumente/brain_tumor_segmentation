@@ -281,6 +281,7 @@ def step(
     #  <------------ SETUP --------------->
 
     metrics = []
+    data_aug = DataAugmenter(probability=0.4, flip=True)  # .to(device)
     for i, batch in enumerate(data_loader):
         data_time.update(time.perf_counter() - end)
         patient_id, inputs, ground_truth = batch["patient_id"], batch["sequences"].to(device), batch["ground_truth"].to(device)
@@ -289,7 +290,6 @@ def step(
         with autocast(enabled=auto_cast_bool):
             # If train dada augmentation, else just prediction
             if mode == "train":
-                data_aug = DataAugmenter(probability=0.4).to(device)
                 inputs = data_aug(inputs)
                 segmentation = model(inputs)
                 # import pdb; pdb.set_trace()
@@ -298,28 +298,27 @@ def step(
                 segmentation = model(inputs)
 
             # Evaluation
-            error_loss = criterion(segmentation, ground_truth)
-            patients_perf.append(dict(id=patient_id[0], epoch=epoch, split=mode, loss=error_loss.item()))
+            loss = criterion(segmentation, ground_truth)
+            patients_perf.append(dict(id=patient_id[0], epoch=epoch, split=mode, loss=loss.item()))
 
             # Checking not nan value
-            if not np.isnan(error_loss.item()):
-                losses.update(error_loss.item())
+            if not np.isnan(loss.item()):
+                losses.update(loss.item())
             else:
                 logging.info("NaN in model loss!!")
 
             if not model.training:
-                metric_ = metric(segmentation, ground_truth)
-                metrics.extend(metric_)
+                metrics.extend(metric(segmentation, ground_truth))
         #  <------------ FORWARD PASS --------------->
 
         #  <------------ BACKWARD PASS --------------->
         if model.training:
-            scaler.scale(error_loss).backward()
+            scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
             optimizer.zero_grad()
-        if scheduler is not None:
-            scheduler.step()
+        # if scheduler is not None:
+        #     scheduler.step()
         #  <------------ BACKWARD PASS --------------->
 
         #  Displaying execution time
