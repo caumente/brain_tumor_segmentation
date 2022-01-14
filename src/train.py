@@ -281,7 +281,7 @@ def step(
     #  <------------ SETUP --------------->
 
     metrics = []
-    data_aug = DataAugmenter(probability=0.4, flip=True)  # .to(device)
+    data_aug = DataAugmenter(probability=0.5, flip=True, gaussian_noise=True)  # .to(device)
     for i, batch in enumerate(data_loader):
         data_time.update(time.perf_counter() - end)
         patient_id, inputs, ground_truth = batch["patient_id"], batch["sequences"].to(device), batch["ground_truth"].to(device)
@@ -317,8 +317,8 @@ def step(
             scaler.step(optimizer)
             scaler.update()
             optimizer.zero_grad()
-        # if scheduler is not None:
-        #     scheduler.step()
+        if scheduler is not None:
+            scheduler.step()
         #  <------------ BACKWARD PASS --------------->
 
         #  Displaying execution time
