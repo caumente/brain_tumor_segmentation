@@ -2,6 +2,7 @@ import torch
 import logging
 from torch import nn
 from random import random, sample, uniform
+import numpy as np
 
 
 class DataAugmenter(nn.Module):
@@ -18,14 +19,14 @@ class DataAugmenter(nn.Module):
             self,
             probability: float = 0.5,
             flip: bool = False,
-            white_noise: bool = False,
+            gaussian_noise: bool = False,
             seq_shuffling: bool = False,
             drop_seq:bool = False
     ) -> torch.Tensor:
         super(DataAugmenter, self).__init__()
         self.p = probability
         self.flip = flip
-        self.white_noise = white_noise
+        self.white_noise = gaussian_noise
         self.seq_shuffling = seq_shuffling
         self.drop_seq = drop_seq
         self.toggle = False
@@ -34,8 +35,8 @@ class DataAugmenter(nn.Module):
         with torch.no_grad():
             if random() < self.p:
 
-                if self.white_noise:
-                    x = self.add_white_noise(x)
+                if random() < 0.5 and self.white_noise:
+                    x = self.gaussian_noise(x)
 
                 if random() < 0.2 and self.seq_shuffling:
                     x = channel_shuffling(x)
@@ -59,28 +60,28 @@ class DataAugmenter(nn.Module):
             return x
 
 
-def add_white_noise(image: torch.Tensor) -> torch.Tensor:
-    """
-    This function takes a tensor as input an generate a white noise. The way to calculate the white noise is as follow:
-        First multiply the image by a value got from a uniform distribution between 0.9 and 1.1.
-        The standard deviation is calculated individually by channel.
-        Generate noise as a normal distribution using mean 0 and std calculated before
+    def gaussian_noise(self, x) -> torch.Tensor:
+        """
+        This function takes a tensor as input an generate a white noise. The way to calculate the white noise is as follow:
+            First multiply the image by a value got from a uniform distribution between 0.9 and 1.1.
+            The standard deviation is calculated individually by channel.
+            Generate noise as a normal distribution using mean 0 and std calculated before
 
-    Params:
-    *******
-        - image (torch.Tensor): Image to transform
+        Params:
+        *******
+            - image (torch.Tensor): Image to transform
 
-    Return:
-    *******
-        . image (torch.Tensor): Image transformed
-    """
+        Return:
+        *******
+            . image (torch.Tensor): Image transformed
+        """
+        x = x * uniform(0.9, 1.1)
+        std_per_channel = torch.stack(list(torch.std(x[:, i][x[:, i] > 0]) for i in range(x.size(1))))
+        noise = torch.stack([torch.normal(0, std * 0.1, size=x[0, 0].shape) for std in std_per_channel]).to(x.device)
+        x = x + noise
 
-    image = image * uniform(0.9, 1.1)
-    std_per_channel = torch.stack(list(torch.std(image[:, i][image[:, i] > 0]) for i in range(image.size(1))))
-    noise = torch.stack([torch.normal(0, std*0.1, size=image[0, 0].shape) for std in std_per_channel]).to(image.device)
-    image = image + noise
 
-    return image
+        return x
 
 
 def channel_shuffling(image: torch.Tensor) -> torch.Tensor:
