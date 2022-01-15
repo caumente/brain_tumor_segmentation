@@ -23,5 +23,8 @@
   "com": "Augmentation_flip_gaussian",
   "postprocessing": false,
   "path_dataset": "./../datasets/BRATS2020/TrainingData/",
-  "auto_cast_bool": true
+  "auto_cast_bool": true,
+  "prob_augmentation": 0.5,
+  "flip_augmentation": true,
+  "gaussian_augmentation": true
 }
