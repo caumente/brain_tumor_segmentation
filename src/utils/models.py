@@ -12,7 +12,7 @@ from src.models.Unet3D import UNet3D
 from src.models.VNet import VNet
 from ranger import Ranger
 from ranger21 import Ranger21
-from monai.losses import DiceLoss
+from monai.losses import DiceLoss, DiceFocalLoss
 from src.loss import EDiceLoss
 
 
@@ -161,8 +161,10 @@ def loss_function_loading(
 ):
     # TODO: implement more loss functions
     if loss_function == 'dice':
-        loss_function_criterion = EDiceLoss(classes=n_classes).to(device)
-        #loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, smooth_nr=1, smooth_dr=1, squared_pred=True).to(device)
+        #loss_function_criterion = EDiceLoss(classes=n_classes).to(device)
+        loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, smooth_nr=1, smooth_dr=1, squared_pred=True).to(device)
+    elif loss_function == "dice_focal":
+        loss_function_criterion = DiceFocalLoss(include_background=True, sigmoid=True, squared_pred=True)
     else:
         print("Dice loss function is the only accepted")
         sys.exit()
