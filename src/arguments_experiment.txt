@@ -1,6 +1,6 @@
 {
   "architecture": "DeepUNet",
-  "width": 12,
+  "width": 24,
   "sequences": ["_t1", "_t1ce", "_t2", "_flair"],
   "regions": ["et", "tc", "wt"],
   "start_epoch": 0,
@@ -20,7 +20,7 @@
   "devices" : 0,
   "debug_mode": false,
   "val": 1,
-  "com": "BRATS2020",
+  "com": "Augmentation_flip_gaussian",
   "postprocessing": false,
   "path_dataset": "./../datasets/BRATS2020/TrainingData/",
   "auto_cast_bool": true
