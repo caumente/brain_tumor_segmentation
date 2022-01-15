@@ -1,3 +1,6 @@
+import sys
+from os import path
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from argparse import Namespace
 from torch.utils.data import DataLoader
 import json
@@ -16,15 +19,15 @@ from src.utils.miscellany import init_log
 
 
 
-experiment_name = "./experiments/Experiment_X_debug_20220107_214722__ShallowUNet_12_batch1_sgd_lr0.0001_epochs400"
+experiment_name = "./../experiments/Augmentation_flip_gaussian20220114_235019__DeepUNet_12_batch1_ranger21_lr0.001_epochs400"
 
-with open(f"./{experiment_name}/config_file.json", "r") as read_file:
+with open(f"{experiment_name}/config_file.json", "r") as read_file:
     args = json.load(read_file)
     args = Namespace(**args)
 
-args.pathdata = "./datasets/BRATS2021/DebugData/"
-args.save_folder = Path(f"./{experiment_name}/Inference_{experiment_name.split('/')[-1]}")
-
+args.pathdata = "./../datasets/BRATS2020/ValidationData/"
+args.save_folder = Path(f"{experiment_name}/Inference_{experiment_name.split('/')[-1]}")
+print(args.pathdata)
 
 
 seed_everything(seed=args.seed)
@@ -42,7 +45,7 @@ init_log(log_name=f"./{str(args.save_folder)}/inference.log")
 logging.info(args)
 
 # Checking whether a GPU is available or
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
 num_gpus = torch.cuda.device_count()
 
 # Implementing the model, turning it from cpu to gpu, and loading parameters
