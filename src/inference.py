@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 import json
 import shutil
 import os
+import logging
 from pathlib import Path
 from src.utils.models import load_checkpoint
 from src.utils.models import create_model
@@ -10,6 +11,7 @@ from src.utils.miscellany import generate_segmentations
 from src.utils.miscellany import seed_everything
 import torch
 from src.dataset.brats import Brats
+from src.utils.miscellany import init_log
 
 
 
@@ -23,8 +25,6 @@ with open(f"./{experiment_name}/config_file.json", "r") as read_file:
 args.pathdata = "./datasets/BRATS2021/DebugData/"
 args.save_folder = Path(f"./{experiment_name}/Inference_{experiment_name.split('/')[-1]}")
 
-print(args)
-
 
 
 seed_everything(seed=args.seed)
@@ -37,6 +37,9 @@ if os.path.exists(args.seg_folder):
     shutil.rmtree(args.seg_folder)
 args.seg_folder.mkdir(parents=True, exist_ok=True)
 
+
+init_log(log_name=f"./{str(args.save_folder)}/inference.log")
+logging.info(args)
 
 # Checking whether a GPU is available or
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -62,8 +65,9 @@ dataset = Brats(patients_path=pathdata,
                 crop_or_pad=args.crop_or_pad,
                 fit_boundaries=args.fit_boundaries,
                 inverse_seq=args.inverse_seq,
-                debug_mode=False)
-print(f"Size of dataset: {len(dataset)}")
+                debug_mode=False,
+                auto_cast_bool = False)
+logging.info(f"Size of dataset: {len(dataset)}")
 data_loader = DataLoader(dataset, batch_size=1)
 
 
