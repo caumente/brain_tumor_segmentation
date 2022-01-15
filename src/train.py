@@ -138,8 +138,12 @@ def main(args):
     criterion = loss_function_loading(loss_function=args.loss)
     metric = EDiceLoss(classes=args.regions).to(device).metric
 
-    # Loading datasets train-val-test
+    # Loading datasets train-val-test and data augmenter
     train_loader, val_loader, test_loader = dataset_loading(args)
+    data_aug = DataAugmenter(
+        probability=args.prob_augmentation,
+        flip=args.flip_augmentation,
+        gaussian_noise=args.gauss_noise_augmentation)  # .to(device)
 
     # optimizer
     optimizer = optimizer_loading(model=model, optimizer=args.optimizer, learning_rate=args.lr, num_epochs=args.epochs,
@@ -171,7 +175,8 @@ def main(args):
             model.train()
             training_loss = step(train_loader, model, criterion, metric, optimizer, epoch,
                                  args.regions, scaler, save_folder=args.save_folder,
-                                 patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool)
+                                 patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool,
+                                 data_augmentation=data_aug)
             with open(f"{args.save_folder}/Progress/progressTrain.txt", mode="a") as f:
                 print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_train': training_loss}, file=f)
 
@@ -214,7 +219,8 @@ def main(args):
                 scheduler.step(validation_loss)
 
             # Early stopping
-            if (epoch / args.epochs > 0.25) and (epochs_not_improve > 30):
+            #if (epoch / args.epochs > 0.25) and (epochs_not_improve > 30):
+            if epochs_not_improve > 30:
                 logging.info("\n Early Stopping now! The model hasn't improved in last 30 updates.\n")
                 break
 
@@ -264,7 +270,8 @@ def step(
         save_folder=None,
         patients_perf=None,
         device='cpu',
-        auto_cast_bool = False
+        auto_cast_bool = False,
+        data_augmentation = None
 ):
 
     #  <------------ SETUP --------------->
@@ -281,7 +288,6 @@ def step(
     #  <------------ SETUP --------------->
 
     metrics = []
-    data_aug = DataAugmenter(probability=0.5, flip=True, gaussian_noise=True)  # .to(device)
     for i, batch in enumerate(data_loader):
         data_time.update(time.perf_counter() - end)
         patient_id, inputs, ground_truth = batch["patient_id"], batch["sequences"].to(device), batch["ground_truth"].to(device)
@@ -289,11 +295,10 @@ def step(
         #  <------------ FORWARD PASS --------------->
         with autocast(enabled=auto_cast_bool):
             # If train dada augmentation, else just prediction
-            if mode == "train":
-                inputs = data_aug(inputs)
+            if mode == "train" and data_augmentation is not None:
+                inputs = data_augmentation(inputs)
                 segmentation = model(inputs)
-                # import pdb; pdb.set_trace()
-                segmentation = data_aug.reverse(segmentation)
+                segmentation = data_augmentation.reverse(segmentation)
             else:
                 segmentation = model(inputs)
 
