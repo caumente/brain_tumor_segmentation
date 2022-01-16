@@ -12,7 +12,7 @@ from src.models.Unet3D import UNet3D
 from src.models.VNet import VNet
 from ranger import Ranger
 from ranger21 import Ranger21
-from monai.losses import DiceLoss, DiceFocalLoss
+from monai.losses import DiceLoss, DiceFocalLoss, GeneralizedDiceLoss, DiceCELoss
 from src.loss import EDiceLoss
 
 
@@ -155,18 +155,21 @@ def optimizer_loading(
 
 def loss_function_loading(
         loss_function: str = "dice",
-        n_classes: Tuple[str] = ("et", "tc", "wt"),
-        device='cpu'
+        n_classes: Tuple[str] = ("et", "tc", "wt")
 # ) -> EDiceLoss:
 ):
     # TODO: implement more loss functions
     if loss_function == 'dice':
         #loss_function_criterion = EDiceLoss(classes=n_classes).to(device)
-        loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, smooth_nr=1, smooth_dr=1, squared_pred=True).to(device)
+        loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, smooth_nr=1, smooth_dr=1, squared_pred=True)
     elif loss_function == "dice_focal":
         loss_function_criterion = DiceFocalLoss(include_background=True, sigmoid=True, squared_pred=True)
+    elif loss_function == "generalized_dice":
+        loss_function_criterion = GeneralizedDiceLoss(include_background=True, sigmoid=True)
+    elif loss_function == "dice_crossentropy":
+        loss_function_criterion = DiceCELoss(include_background=True, sigmoid=True, squared_pred=True)
     else:
-        print("Dice loss function is the only accepted")
+        print("Select a loss function allowed: ['dice', 'dice_focal', 'generalized_dice', 'dice_crossentropy']")
         sys.exit()
 
     return loss_function_criterion
