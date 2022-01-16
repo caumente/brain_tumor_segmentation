@@ -16,6 +16,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
+torch.cuda.set_device('cuda:1')
 
 from src.dataset.DataAugmenter import DataAugmenter
 from src.dataset.brats import dataset_loading
@@ -135,7 +136,7 @@ def main(args):
     # model = model.to(device) if num_gpus == 1 else torch.nn.DataParallel(model).to(device)
 
     # Implementing loss function and metric
-    criterion = loss_function_loading(loss_function=args.loss)
+    criterion = loss_function_loading(loss_function=args.loss).to(device)
     metric = EDiceLoss(classes=args.regions).to(device).metric
 
     # Loading datasets train-val-test and data augmenter
@@ -143,7 +144,7 @@ def main(args):
     data_aug = DataAugmenter(
         probability=args.prob_augmentation,
         flip=args.flip_augmentation,
-        gaussian_noise=args.gauss_noise_augmentation)  # .to(device)
+        gaussian_noise=args.gauss_noise_augmentation)
 
     # optimizer
     optimizer = optimizer_loading(model=model, optimizer=args.optimizer, learning_rate=args.lr, num_epochs=args.epochs,
