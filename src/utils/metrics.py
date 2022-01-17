@@ -109,7 +109,7 @@ def save_metrics(
     metrics = {key: value for key, value in zip(regions, metrics)}
     print(f"\nEpoch {current_epoch} -> "
           f"Val: {[f'{key.upper()} : {np.nanmean(value):.4f}' for key, value in metrics.items()]} -> "
-          f"Average: {np.mean([np.nanmean(value) for key, value in metrics.items()])}"
+          f"Average: {np.mean([np.nanmean(value) for key, value in metrics.items()]):.4f}"
           )
 
 
@@ -117,7 +117,7 @@ def save_metrics(
     with open(f"{save_folder}/validation_error.txt", mode="a") as f:
         print(f"\nEpoch {current_epoch} -> "
               f"Val: {[f'{key.upper()} : {np.nanmean(value):.4f}' for key, value in metrics.items()]} -> "
-              f"Average: {np.mean([np.nanmean(value) for key, value in metrics.items()])}",
+              f"Average: {np.mean([np.nanmean(value) for key, value in metrics.items()]):.4f}",
               file=f)
 
 
