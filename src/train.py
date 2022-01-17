@@ -197,6 +197,7 @@ def main(args):
                               file=f)
 
                 if validation_loss < best:
+                    logging.info("Best validation loss improved")
                     epochs_not_improve = 0
                     best = validation_loss
 
@@ -211,6 +212,7 @@ def main(args):
                         checkpoint_path=args.save_folder)
                 else:
                     epochs_not_improve += 1
+                    logging.info(f"Best validation loss did not improve for {epochs_not_improve} apochs")
 
                 ts = time.perf_counter()
                 logging.info(f"\nVal epoch done in {ts - te:.2f} seconds\n")
