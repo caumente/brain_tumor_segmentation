@@ -210,7 +210,7 @@ def generate_segmentations(
         # Storing segmentation using the input resolution
         recovered_segmentation = recover_initial_resolution(image=segmentation, cropped_indexes=cropped_indexes, random_indexes=random_indexes)
         recovered_segmentation = regions_to_labels(segmentation=recovered_segmentation, regions=args.regions)
-        WriteImage(GetImageFromArray(recovered_segmentation), f"{args.seg_folder}/{patient_id}_segmentation_original_resolution.nii.gz")
+        WriteImage(GetImageFromArray(recovered_segmentation.astype(int)), f"{args.seg_folder}/{patient_id}_segmentation_original_resolution.nii.gz")
         logging.info(f"Recovering initial dimensions...")
 
         # Storing segmentation using the resolution chosen
