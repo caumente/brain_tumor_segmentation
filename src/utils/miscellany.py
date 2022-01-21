@@ -188,7 +188,7 @@ def generate_segmentations(
 
     metrics_list = []
     for _, batch in enumerate(data_loader):
-
+        ref_path = ['./../datasets/BRATS2021/TrainingData/BraTS2021_00000/BraTS2021_00000_seg.nii.gz']
         # Getting image attributes
         sequences = batch["sequences"]
         ground_truth = batch["ground_truth"][0].cpu().numpy()
@@ -211,7 +211,7 @@ def generate_segmentations(
         recovered_segmentation = recover_initial_resolution(image=segmentation, cropped_indexes=cropped_indexes, random_indexes=random_indexes)
         recovered_segmentation = regions_to_labels(segmentation=recovered_segmentation, regions=args.regions)
         recovered_segmentation = GetImageFromArray(np.expand_dims(recovered_segmentation, 0), isVector=False)
-        ref_image = ReadImage(batch["seg_path"])
+        ref_image = ReadImage(ref_path)
         recovered_segmentation.CopyInformation(ref_image) # this step is crutial to maintain the orientation
         WriteImage(recovered_segmentation, f"{args.seg_folder}/{patient_id}.nii.gz")
         logging.info(f"Recovering initial dimensions...")
