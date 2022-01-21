@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from typing import Tuple
 from torch.cuda.amp import autocast
-from SimpleITK import GetImageFromArray, WriteImage
+from SimpleITK import GetImageFromArray, GetArrayFromImage, WriteImage, ReadImage
 from ..utils.metrics import METRICS
 from ..utils.metrics import calculate_metrics
 from ..dataset.brats import recover_initial_resolution
@@ -210,7 +210,10 @@ def generate_segmentations(
         # Storing segmentation using the input resolution
         recovered_segmentation = recover_initial_resolution(image=segmentation, cropped_indexes=cropped_indexes, random_indexes=random_indexes)
         recovered_segmentation = regions_to_labels(segmentation=recovered_segmentation, regions=args.regions)
-        WriteImage(GetImageFromArray(recovered_segmentation.astype(int)), f"{args.seg_folder}/{patient_id}_segmentation_original_resolution.nii.gz")
+        recovered_segmentation = GetImageFromArray(np.expand_dims(recovered_segmentation, 0), isVector=False)
+        ref_image = ReadImage(batch["seg_path"])
+        recovered_segmentation.CopyInformation(ref_image) # this step is crutial to maintain the orientation
+        WriteImage(recovered_segmentation, f"{args.seg_folder}/{patient_id}.nii.gz")
         logging.info(f"Recovering initial dimensions...")
 
         # Storing segmentation using the resolution chosen
@@ -220,8 +223,8 @@ def generate_segmentations(
 
         # Saving sequences and ground truth cropped, and segmentation predicted
         np.save(f"{args.seg_folder}/{patient_id}_sequences", sequences.cpu().numpy()[0])
-        WriteImage(GetImageFromArray(ground_truth.astype(int)), f"{args.seg_folder}/{patient_id}_ground_truth.nii.gz")
-        WriteImage(GetImageFromArray(segmentation.astype(int)), f"{args.seg_folder}/{patient_id}_segmentation.nii.gz")
+        WriteImage(GetImageFromArray(ground_truth.astype(np.int16)), f"{args.seg_folder}/{patient_id}_ground_truth.nii.gz")
+        WriteImage(GetImageFromArray(segmentation.astype(np.int16)), f"{args.seg_folder}/{patient_id}_segmentation.nii.gz")
         logging.info(f"Sequences, ground truth and segmentation saved successfully...")
 
     # Generating .csv which contains all metrics
