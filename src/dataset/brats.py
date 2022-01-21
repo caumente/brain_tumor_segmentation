@@ -139,7 +139,7 @@ class Brats(Dataset):
             patient_id=patient_info["id"],
             sequences=sequences,
             ground_truth=ground_truth,
-            seg_path=str(patient_info["seg"]) if self.has_ground_truth else "",
+            seg_path=str(patient_info["seg"]) if self.has_ground_truth else str("./../datasets/BRATS2021/TrainingData/BraTS2021_00000/BraTS2021_00000_seg.nii.gz"),
             cropped_indexes=cropped_indexes,
             random_indexes=random_indexes,
             et_present=et_present
