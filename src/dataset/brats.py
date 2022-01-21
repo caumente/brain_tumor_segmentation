@@ -123,8 +123,9 @@ class Brats(Dataset):
 
         # Fit the sequences to the brain boundaries by cropping and the cropping/padding to the resolution defined
         if self.fit_boundaries:
-            cropped_indexes, (sequences, ground_truth) = fit_brain_boundaries(sequences=sequences, segmentation=ground_truth)
-            #(zmin, zmax), (ymin, ymax), (xmin, xmax), (sequences, ground_truth) = fit_brain_boundaries(sequences=sequences, segmentation=ground_truth)
+            cropped_indexes, (sequences, ground_truth) = fit_brain_boundaries(sequences=sequences,
+                                                                              segmentation=ground_truth,
+                                                                              max_dims=self.crop_or_pad)
 
         # Cropping/padding to the resolution defined
         sequences, ground_truth, random_indexes = random_pad_or_crop(sequences=sequences, segmentation=ground_truth, target_size=self.crop_or_pad)
@@ -139,7 +140,7 @@ class Brats(Dataset):
             patient_id=patient_info["id"],
             sequences=sequences,
             ground_truth=ground_truth,
-            seg_path=str(patient_info["seg"]) if self.has_ground_truth else str("./../datasets/BRATS2021/TrainingData/BraTS2021_00000/BraTS2021_00000_seg.nii.gz"),
+            seg_path=str(patient_info["seg"]) if self.has_ground_truth else str(""),
             cropped_indexes=cropped_indexes,
             random_indexes=random_indexes,
             et_present=et_present
