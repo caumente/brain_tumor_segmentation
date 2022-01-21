@@ -69,7 +69,8 @@ def cleaning_outliers_and_scaler(
 
 def fit_brain_boundaries(
         sequences: np.ndarray,
-        segmentation: np.ndarray
+        segmentation: np.ndarray,
+        max_dims: list
 ) -> Union[List[Tuple[int, int]], Tuple[np.ndarray, np.ndarray]]:
     """
     This function crop the sequences and its segmentation removing as much background as possible. As result, the
@@ -89,12 +90,28 @@ def fit_brain_boundaries(
 
     """
 
+    def check_max_dim_allow(allow, max_, min_):
+
+        if max_ - min_ > allow:
+            diff = (max_ - min_) - allow
+            max_ = max_ - diff
+
+        return max_, min_
+
+    # Maximum dimensions allowd
+    zallow, yallow, xallow = max_dims
+
     # Getting all non-xero indexes
     z_indexes, y_indexes, x_indexes = np.nonzero(np.sum(sequences, axis=0) != 0)
 
     # Calculating lower and upper boundaries by each dimension. Add a extra pixel in each dimension
     zmin, ymin, xmin = [max(0, int(np.min(idx) - 1)) for idx in (z_indexes, y_indexes, x_indexes)]
     zmax, ymax, xmax = [int(np.max(arr) + 1) for arr in (z_indexes, y_indexes, x_indexes)]
+
+    # This checks are mandatory when you want to recover the initial resolution for the challenge
+    zmax, zmin = check_max_dim_allow(zallow, zmax, zmin)
+    ymax, ymin = check_max_dim_allow(yallow, ymax, ymin)
+    xmax, xmin = check_max_dim_allow(xallow, xmax, xmin)
 
     # Fitting sequences and segmentation to brain boundaries
     sequences = sequences[:, zmin:zmax, ymin:ymax, xmin:xmax]
