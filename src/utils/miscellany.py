@@ -201,15 +201,21 @@ def generate_segmentations(
         segmentation = model_prediction(model=model, sequences=sequences, device=device)
         logging.info(f"Segmentation calculated...")
 
+
         # Evaluating ground truth and segmentation
         patient_metric_list = calculate_metrics(ground_truth=ground_truth, segmentation=segmentation,
                                                 patient=patient_id, regions=args.regions)
         metrics_list.append(patient_metric_list)
         logging.info(f"Metrics stored...")
 
-        # Storing segmentation using the input resolution
+        # Recovering initial resolution and transforming regions to labels
         recovered_segmentation = recover_initial_resolution(image=segmentation, cropped_indexes=cropped_indexes, random_indexes=random_indexes)
         recovered_segmentation = regions_to_labels(segmentation=recovered_segmentation, regions=args.regions)
+
+        # Postprocessing
+        count_pixels(recovered_segmentation)
+
+        # Storing segmentation using the input resolution
         recovered_segmentation = GetImageFromArray(np.expand_dims(recovered_segmentation, 0), isVector=False)
         ref_image = ReadImage(ref_path)
         recovered_segmentation.CopyInformation(ref_image) # this step is crutial to maintain the orientation
@@ -326,3 +332,11 @@ class ProgressMeter(object):
         num_digits = len(str(num_batches // 1))
         fmt = '{:' + str(num_digits) + 'd}'
         return '[' + fmt + '/' + fmt.format(num_batches) + ']'
+
+
+def count_pixels(segmentation):
+
+    unique, counts = np.unique(segmentation, return_counts=True)
+    logging.info(f"Label prediction: {dict(zip(unique, counts))}")
+    # return dict(zip(unique, counts))
+    pass
