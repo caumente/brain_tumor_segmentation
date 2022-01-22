@@ -213,7 +213,12 @@ def generate_segmentations(
         recovered_segmentation = regions_to_labels(segmentation=recovered_segmentation, regions=args.regions)
 
         # Postprocessing
-        count_pixels(recovered_segmentation)
+        if args.postprocessing:
+            pixels_dict = count_pixels(recovered_segmentation)
+            if pixels_dict[4.0] < 200:
+                logging.info("This segmentation has less than 200 pixels in the ET region. Dropping that label.")
+                recovered_segmentation[recovered_segmentation == 4.0] = 1.0
+
 
         # Storing segmentation using the input resolution
         recovered_segmentation = GetImageFromArray(np.expand_dims(recovered_segmentation, 0), isVector=False)
@@ -337,6 +342,9 @@ class ProgressMeter(object):
 def count_pixels(segmentation):
 
     unique, counts = np.unique(segmentation, return_counts=True)
-    logging.info(f"Label prediction: {dict(zip(unique, counts))}")
-    # return dict(zip(unique, counts))
-    pass
+    pixels_dict = dict(zip(unique, counts))
+
+    if 4.0 not in pixels_dict:
+        pixels_dict[4.0] = 0
+
+    return pixels_dict
