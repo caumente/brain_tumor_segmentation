@@ -26,5 +26,6 @@
   "auto_cast_bool": true,
   "prob_augmentation": 0.5,
   "flip_augmentation": true,
-  "gauss_noise_augmentation": true
+  "gauss_noise_augmentation": true,
+  "production_training": true
 }

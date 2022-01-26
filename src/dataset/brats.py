@@ -10,7 +10,7 @@ from skimage import util
 from sklearn.model_selection import train_test_split
 from torch import from_numpy
 from torch.utils.data.dataset import Dataset
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 
 from src.utils.dataset import fit_brain_boundaries
 from src.utils.dataset import cleaning_outliers_and_scaler
@@ -391,6 +391,9 @@ def dataset_loading(args):
                                                             fit_boundaries=args.fit_boundaries,
                                                             inverse_seq=args.inverse_seq,
                                                             auto_cast_bool=args.auto_cast_bool)
+    if args.production_training:
+        return DataLoader(ConcatDataset([train_dataset, val_dataset, test_dataset]), batch_size=args.batch_size,
+                          shuffle=True, num_workers=args.workers, pin_memory=False, drop_last=True)
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                                num_workers=args.workers, pin_memory=False, drop_last=True)
