@@ -213,9 +213,9 @@ def generate_segmentations(
         recovered_segmentation = regions_to_labels(segmentation=recovered_segmentation, regions=args.regions)
 
         # Postprocessing
-        if args.postprocessing:
+        if args.postprocessing_threshold > 0:
             pixels_dict = count_pixels(recovered_segmentation)
-            if pixels_dict[4.0] < 200:
+            if pixels_dict[4.0] < args.postprocessing_threshold:
                 logging.info("This segmentation has less than 200 pixels in the ET region. Dropping that label.")
                 recovered_segmentation[recovered_segmentation == 4.0] = 1.0
 

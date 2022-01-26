@@ -21,7 +21,7 @@
   "debug_mode": false,
   "val": 1,
   "com": "BRATS2021_",
-  "postprocessing": false,
+  "postprocessing_threshold": 200,
   "path_dataset": "./../datasets/BRATS2021/TrainingData/",
   "auto_cast_bool": true,
   "prob_augmentation": 0.5,
