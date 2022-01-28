@@ -40,6 +40,16 @@ class ShallowUNet(nn.Module):
         self.downsample = nn.MaxPool3d(2, 2)
         self.output = conv1x1(widths[0] // 2, regions)
 
+        self._init_weights()
+
+    def _init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv3d):
+                nn.init.kaiming_normal_(m.weight, nonlinearity='leaky_relu')
+            elif isinstance(m, (nn.BatchNorm3d, nn.GroupNorm, nn.InstanceNorm3d)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
     def forward(self, x):
         # Encoding phase
         e1 = self.encoder1(x)
