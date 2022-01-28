@@ -19,13 +19,13 @@ from src.utils.miscellany import init_log
 
 
 
-experiment_name = "./../experiments/DeepUNet_24_batch1_ranger21_lr0.001_epochs400"
+experiment_name = "./../experiments/BRATS2020_20220128_000723__DeepUNet_24_batch1_ranger21_lr0.001_epochs100"
 
 with open(f"{experiment_name}/config_file.json", "r") as read_file:
     args = json.load(read_file)
     args = Namespace(**args)
 
-args.postprocessing_threshold = True
+args.postprocessing_threshold = 200
 args.pathdata = "./../datasets/BRATS2020/ValidationData/"
 args.save_folder = Path(f"{experiment_name}/Inference_{experiment_name.split('/')[-1]}")
 print(args.pathdata)
