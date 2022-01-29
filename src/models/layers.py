@@ -14,6 +14,12 @@ def conv3x3(in_channels, out_channels, stride=1, groups=1, dilation=1, bias=Fals
     return nn.Conv3d(in_channels, out_channels, kernel_size=(3, 3, 3), stride=stride,
                      padding=dilation, groups=groups, bias=bias, dilation=dilation)
 
+def conv_single(in_channels, out_channels=1, stride=1, groups=1, dilation=1, bias=False):
+    """ 3D convolution which uses a kernel size of 3"""
+
+    return nn.Conv3d(in_channels, out_channels, kernel_size=(3, 3, 3), stride=stride,
+                     padding=dilation, groups=groups, bias=bias, dilation=dilation)
+
 
 class ConvInNormLeReLU(nn.Sequential):
     """
@@ -54,8 +60,8 @@ class LevelBlock(nn.Sequential):
         super(LevelBlock, self).__init__(
             OrderedDict(
                 [
-                    ('ConvBnRelu1', ConvInNormLeReLU(in_channels, mid_channels)),
-                    ('ConvBnRelu2', ConvInNormLeReLU(mid_channels, out_channels))
+                    ('ConvInNormLRelu1', ConvInNormLeReLU(in_channels, mid_channels)),
+                    ('ConvInNormLRelu2', ConvInNormLeReLU(mid_channels, out_channels))
                 ])
         )
 
@@ -100,4 +106,30 @@ class UBlock(nn.Sequential):
                     ('ConvBnRelu1', ConvBatchNormReLU(in_channels, mid_channels)),
                     ('ConvBnRelu2', ConvBatchNormReLU(mid_channels, out_channels))
                 ])
+        )
+
+
+
+
+
+class AttentionGate(nn.Sequential):
+    """
+    This class stacks a 3D Convolution, Batch Normalization and ReLU layers.
+
+    Params
+    ******
+        - in_channels: Number of input channels
+        - out_channels: Number of output channels
+
+    """
+    def __init__(self, in_channels):
+        super(AttentionGate, self).__init__(
+            OrderedDict(
+                [
+                    ('ReLU', nn.ReLU()),
+                    ('Conv', conv_single(in_channels)),
+                    ('InNorm', nn.InstanceNorm3d(in_channels)),
+                    ('Sigmoid', nn.Sigmoid())
+                ]
+            )
         )
