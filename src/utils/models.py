@@ -10,6 +10,8 @@ from src.models.ResidualUNet import resunet_3d
 from src.models.ShallowUNet import ShallowUNet
 from src.models.Unet3D import UNet3D
 from src.models.VNet import VNet
+from src.models.ResidualShallowUNet import ResidualShallowUNet
+from src.models.AttentionShallowUNet import AttentionShallowUNet
 from ranger import Ranger
 from ranger21 import Ranger21
 from monai.losses import DiceLoss, DiceFocalLoss, GeneralizedDiceLoss, DiceCELoss
@@ -49,6 +51,10 @@ def create_model(
         model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
     elif architecture == 'DeepUNet':
         model = DeepUNet(sequences=len(sequences), regions=len(regions), width=width)
+    elif architecture == 'AttentionShallowUNet':
+        model = AttentionShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
+    elif architecture == 'ResidualShallowUNet':
+        model = ResidualShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
     else:
         model = torch.nn.Module()
         assert "The model selected does not exist. " \
@@ -153,15 +159,10 @@ def optimizer_loading(
 
 
 
-def loss_function_loading(
-        loss_function: str = "dice",
-        n_classes: Tuple[str] = ("et", "tc", "wt")
-# ) -> EDiceLoss:
-):
-    # TODO: implement more loss functions
+def loss_function_loading(loss_function: str = "dice") -> torch.nn.Module:
+
     if loss_function == 'dice':
-        #loss_function_criterion = EDiceLoss(classes=n_classes).to(device)
-        loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, smooth_nr=1, smooth_dr=1, squared_pred=True)
+        loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, smooth_dr=1, smooth_nr=1, squared_pred=True)
     elif loss_function == "dice_focal":
         loss_function_criterion = DiceFocalLoss(include_background=True, sigmoid=True, squared_pred=True)
     elif loss_function == "generalized_dice":
