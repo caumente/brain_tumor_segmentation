@@ -3,6 +3,7 @@ from torch import nn
 from src.models.layers import conv1x1
 from src.models.layers import LevelBlock
 from src.models.layers import ConvInNormLeReLU
+from torchsummary import summary
 
 
 class ShallowUNet(nn.Module):
@@ -83,11 +84,13 @@ def test():
     seq_input = torch.rand(1, 4, 160, 224, 160)
     seq_ouput = torch.rand(1, 3, 160, 224, 160)
 
-    model = ShallowUNet(sequences=4, regions=3, width=6)
+    model = ShallowUNet(sequences=4, regions=3, width=24)
     preds = model(seq_input)
 
     print(seq_input.shape)
     print(preds.shape)
+
+    summary(model, (4, 160, 224, 160))
 
     assert seq_ouput.shape == preds.shape
 
