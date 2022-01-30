@@ -1,19 +1,20 @@
 import logging as log
-import os
 from pathlib import Path
+from random import random
 from typing import List
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
+from monai import transforms
 from skimage import util
 from sklearn.model_selection import train_test_split
 from torch import from_numpy
-from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data.dataset import Dataset
 
-from src.utils.dataset import fit_brain_boundaries
 from src.utils.dataset import cleaning_outliers_and_scaler
+from src.utils.dataset import fit_brain_boundaries
 from src.utils.dataset import load_nii
 from src.utils.dataset import random_pad_or_crop
 
@@ -51,7 +52,8 @@ class Brats(Dataset):
             fit_boundaries: bool = True,
             inverse_seq: bool = False,
             debug_mode: bool = False,
-            auto_cast_bool: bool = False
+            auto_cast_bool: bool = False,
+            data_agumentation: bool = False
     ):
         super(Brats, self).__init__()
 
@@ -70,6 +72,7 @@ class Brats(Dataset):
         self.inverse_sec = inverse_seq
         self.debug_mode = debug_mode
         self.auto_cast_bool = auto_cast_bool
+        self.data_augmentation = data_agumentation
         self.data = []
 
         for patient_path in patients_path:
@@ -135,6 +138,22 @@ class Brats(Dataset):
             sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
         else:
             sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float32"), ground_truth.astype("bool")]]
+
+        if self.data_augmentation:
+            compose = transforms.Compose([
+                transforms.RandGaussianNoise(prob=0.3, mean=0, std=0.1),
+                transforms.RandStdShiftIntensity(factors=(1, 2), prob=0.1, nonzero=False, channel_wise=False),
+                transforms.RandAdjustContrast(prob=0.2, gamma=(1, 1.5)),
+                # transforms.MaskIntensity(mask_data=ground_truth),
+                transforms.RandGaussianSmooth(prob=0.1),
+                transforms.RandGibbsNoise(prob=0.1, alpha=(0.1, 0.2)),
+                transforms.RandKSpaceSpikeNoise(prob=0.1, intensity_range=(2, 4)),
+                transforms.RandCoarseDropout(prob=0.3, holes=10, spatial_size=20),
+                ])
+            sequences= compose(sequences)
+
+            if random() < 0.5:
+                sequences, ground_truth = sequences.flip(3), ground_truth.flip(3)
 
         return dict(
             patient_id=patient_info["id"],
@@ -300,7 +319,8 @@ def get_datasets(
                           fit_boundaries=fit_boundaries,
                           inverse_seq=inverse_seq,
                           debug_mode=debug_mode,
-                          auto_cast_bool=auto_cast_bool)
+                          auto_cast_bool=auto_cast_bool,
+                          data_agumentation=True)
     val_dataset = Brats(patients_path=val_path,
                         sequences=sequences,
                         has_ground_truth=has_ground_truth,
@@ -324,7 +344,7 @@ def get_datasets(
                          fit_boundaries=fit_boundaries,
                          inverse_seq=inverse_seq,
                          debug_mode=debug_mode,
-                        auto_cast_bool=auto_cast_bool)
+                         auto_cast_bool=auto_cast_bool)
 
     log.info(f"Size of train dataset: {len(train_dataset)}")
     log.info(f"Shape of images used for training: {train_dataset[0]['sequences'].shape}")
@@ -393,12 +413,12 @@ def dataset_loading(args):
                                                             auto_cast_bool=args.auto_cast_bool)
     if args.production_training:
         return DataLoader(ConcatDataset([train_dataset, val_dataset, test_dataset]), batch_size=args.batch_size,
-                          shuffle=True, num_workers=args.workers, pin_memory=False, drop_last=True)
+                          shuffle=True, num_workers=args.workers, pin_memory=True, drop_last=True, persistent_workers=True)
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
-                                               num_workers=args.workers, pin_memory=False, drop_last=True)
-    val_loader = DataLoader(val_dataset, batch_size=1, shuffle=True, pin_memory=False,
-                                             num_workers=args.workers, )
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.workers,
+                              pin_memory=True, drop_last=True, persistent_workers=True)
+    val_loader = DataLoader(val_dataset, batch_size=1, shuffle=True, pin_memory=True,
+                                             num_workers=args.workers)
     test_loader = DataLoader(test_dataset, batch_size=1, num_workers=args.workers)
 
     return train_loader, val_loader, test_loader
