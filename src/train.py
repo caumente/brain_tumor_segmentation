@@ -18,7 +18,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 torch.cuda.set_device('cuda:1')
 
-from src.dataset.DataAugmenter import DataAugmenter
 from src.dataset.brats import dataset_loading
 from src.loss import EDiceLoss
 from src.utils.metrics import save_metrics
@@ -141,10 +140,6 @@ def main(args):
 
     # Loading datasets train-val-test and data augmenter
     train_loader, val_loader, test_loader = dataset_loading(args)
-    data_aug = DataAugmenter(
-        probability=args.prob_augmentation,
-        flip=args.flip_augmentation,
-        gaussian_noise=args.gauss_noise_augmentation)
 
     # optimizer
     optimizer = optimizer_loading(model=model, optimizer=args.optimizer, learning_rate=args.lr, num_epochs=args.epochs,
@@ -176,8 +171,7 @@ def main(args):
             model.train()
             training_loss = step(train_loader, model, criterion, metric, optimizer, epoch,
                                  args.regions, scaler, save_folder=args.save_folder,
-                                 patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool,
-                                 data_augmentation=data_aug)
+                                 patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool)
             with open(f"{args.save_folder}/Progress/progressTrain.txt", mode="a") as f:
                 print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_train': training_loss}, file=f)
 
