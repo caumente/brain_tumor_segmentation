@@ -16,6 +16,7 @@ from ranger import Ranger
 from ranger21 import Ranger21
 from monai.losses import DiceLoss, DiceFocalLoss, GeneralizedDiceLoss, DiceCELoss
 from src.loss import EDiceLoss
+from monai.networks.nets import UNETR
 
 
 def create_model(
@@ -55,6 +56,8 @@ def create_model(
         model = AttentionShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
     elif architecture == 'ResidualShallowUNet':
         model = ResidualShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
+    elif architecture == 'UNETR':
+        model = UNETR(in_channels=len(sequences), out_channels=len(regions), img_size=[160, 224, 160])
     else:
         model = torch.nn.Module()
         assert "The model selected does not exist. " \
