@@ -87,8 +87,10 @@ def model_prediction(model: torch.nn.Module, sequences: torch.tensor, device: st
 
     with autocast(enabled=auto_cast_bool):
         with torch.no_grad():
-            segmentation = torch.sigmoid(model(sequences))
-            segmentation = segmentation[0].cpu().numpy() > 0.5
+            segmentation = model(sequences)
+            if type(segmentation) == list:
+                segmentation = segmentation[-1]
+            segmentation = torch.sigmoid(segmentation[0]).cpu().numpy() > 0.5
 
     return segmentation
 

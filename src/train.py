@@ -16,7 +16,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
-torch.cuda.set_device('cuda:1')
+# torch.cuda.set_device('cuda:1')
 
 from src.dataset.brats import dataset_loading
 from src.loss import EDiceLoss
@@ -300,7 +300,10 @@ def step(
                 segmentation = model(inputs)
 
             # Evaluation
-            loss = criterion(segmentation, ground_truth)
+            if type(segmentation) == list:
+                loss = torch.sum(torch.stack([criterion(s, ground_truth) for s in segmentation]))
+            else:
+                loss = criterion(segmentation, ground_truth)
             patients_perf.append(dict(id=patient_id[0], epoch=epoch, split=mode, loss=loss.item()))
 
             # Checking not nan value
@@ -310,7 +313,11 @@ def step(
                 logging.info("NaN in model loss!!")
 
             if not model.training:
-                metrics.extend(metric(segmentation, ground_truth))
+                if type(segmentation) == list:
+                    for s in segmentation:
+                        metrics.extend(metric(s, ground_truth))
+                else:
+                    metrics.extend(metric(segmentation, ground_truth))
         #  <------------ FORWARD PASS --------------->
 
         #  <------------ BACKWARD PASS --------------->

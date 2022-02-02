@@ -197,7 +197,10 @@ def step(
                 segmentation = model(inputs)
 
             # Evaluation
-            loss = criterion(segmentation, ground_truth)
+            if type(segmentation) == list:
+                loss = torch.sum(torch.stack([criterion(s, ground_truth) for s in segmentation]))
+            else:
+                loss = criterion(segmentation, ground_truth)
             patients_perf.append(dict(id=patient_id[0], epoch=epoch, split=mode, loss=loss.item()))
 
             # Checking not nan value
