@@ -40,9 +40,9 @@ class AttentionShallowUNet(nn.Module):
         self.strided_conv3 = conv3x3(widths[2], widths[2], stride=2)
         self.strided_conv2 = conv3x3(widths[1], widths[1], stride=2)
         self.strided_conv1 = conv3x3(widths[0], widths[0], stride=2)
-        self.att3 = AttentionGate(in_channels=widths[3])
-        self.att2 = AttentionGate(in_channels=widths[2])
-        self.att1 = AttentionGate(in_channels=widths[1])
+        self.att3 = AttentionGate(in_channels=widths[2])
+        self.att2 = AttentionGate(in_channels=widths[1])
+        self.att1 = AttentionGate(in_channels=widths[0])
 
         # Upsample, downsample and output steps
         self.upsample = nn.Upsample(scale_factor=2, mode="trilinear", align_corners=True)
@@ -74,7 +74,7 @@ class AttentionShallowUNet(nn.Module):
         bottleneck2 = self.bottleneck2(torch.cat([e4, bottleneck], dim=1))
 
         # attention 3
-        alpha3 = torch.cat([self.strided_conv3(e3), bottleneck2], dim=1)
+        alpha3 = torch.add(self.strided_conv3(e3), bottleneck2)
         attention_grid3 = self.upsample(self.att3(alpha3))
         e3_attentioned = torch.mul(e3, attention_grid3)
 
@@ -83,7 +83,7 @@ class AttentionShallowUNet(nn.Module):
         d3 = self.decoder3(torch.cat([e3_attentioned, up3], dim=1))
 
         # attention 2
-        alpha2 = torch.cat([self.strided_conv2(e2), d3], dim=1)
+        alpha2 = torch.add(self.strided_conv2(e2), d3)
         attention_grid2= self.upsample(self.att2(alpha2))
         e2_attentioned = torch.mul(e2, attention_grid2)
 
@@ -91,7 +91,7 @@ class AttentionShallowUNet(nn.Module):
         d2 = self.decoder2(torch.cat([e2_attentioned, up2], dim=1))
 
         # attention 1
-        alpha1 = torch.cat([self.strided_conv1(e1), d2], dim=1)
+        alpha1 = torch.add(self.strided_conv1(e1), d2)
         attention_grid1= self.upsample(self.att1(alpha1))
         e1_attentioned = torch.mul(e1, attention_grid1)
 
