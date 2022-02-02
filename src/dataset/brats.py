@@ -134,10 +134,10 @@ class Brats(Dataset):
         sequences, ground_truth, random_indexes = random_pad_or_crop(sequences=sequences, segmentation=ground_truth, target_size=self.crop_or_pad)
 
         # Type casting for sequences and ground truth
-        if self.auto_cast_bool:
-            sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
-        else:
-            sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float32"), ground_truth.astype("bool")]]
+       # if self.auto_cast_bool:
+       #     sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
+       # else:
+       #     sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float32"), ground_truth.astype("bool")]]
 
         if self.data_augmentation:
             compose = transforms.Compose([
@@ -153,7 +153,14 @@ class Brats(Dataset):
             sequences= compose(sequences)
 
             if random() < 0.5:
-                sequences, ground_truth = sequences.flip(3), ground_truth.flip(3)
+                #sequences, ground_truth = sequences.flip(3), ground_truth.flip(3)
+                sequences, ground_truth = np.flip(sequences, 3), np.flip(ground_truth, 3)
+
+        if self.auto_cast_bool:
+            sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
+        else:
+            sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float32"), ground_truth.astype("bool")]]
+
 
         return dict(
             patient_id=patient_info["id"],
@@ -413,10 +420,10 @@ def dataset_loading(args):
                                                             auto_cast_bool=args.auto_cast_bool)
     if args.production_training:
         return DataLoader(ConcatDataset([train_dataset, val_dataset, test_dataset]), batch_size=args.batch_size,
-                          shuffle=True, num_workers=args.workers, pin_memory=True, drop_last=True, persistent_workers=True)
+                          shuffle=True, num_workers=args.workers, pin_memory=False, drop_last=True, persistent_workers=True)
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.workers,
-                              pin_memory=True, drop_last=True, persistent_workers=True)
+                              pin_memory=False, drop_last=True, persistent_workers=True)
     val_loader = DataLoader(val_dataset, batch_size=1, shuffle=True, pin_memory=True,
                                              num_workers=args.workers)
     test_loader = DataLoader(test_dataset, batch_size=1, num_workers=args.workers)
