@@ -19,7 +19,7 @@ class nnUNet2021(nn.Module):
     def __init__(self, sequences, regions):
         super(nnUNet2021, self).__init__()
 
-        widths = [64, 128, 256, 512]
+        widths = [32, 64, 128, 256]
 
         # Encoders
         self.encoder1 = LevelBlock(sequences, widths[0], widths[0])

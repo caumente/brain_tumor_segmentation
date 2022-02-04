@@ -16,7 +16,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
-# torch.cuda.set_device('cuda:1')
+torch.cuda.set_device('cuda:1')
 
 from src.dataset.brats import dataset_loading
 from src.loss import EDiceLoss
@@ -217,7 +217,7 @@ def main(args):
 
             # Early stopping
             #if (epoch / args.epochs > 0.25) and (epochs_not_improve > 30):
-            if epochs_not_improve > 30:
+            if epochs_not_improve > 15:
                 logging.info("\n Early Stopping now! The model hasn't improved in last 30 updates.\n")
                 break
 

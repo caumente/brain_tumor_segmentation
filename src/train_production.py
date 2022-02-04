@@ -13,7 +13,7 @@ import numpy as np
 import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-#torch.cuda.set_device('cuda:1')
+torch.cuda.set_device('cuda:1')
 
 from src.dataset.DataAugmenter import DataAugmenter
 from src.dataset.brats import dataset_loading
