@@ -14,9 +14,9 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.cuda.amp import autocast, GradScaler
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
 from torch.utils.data import DataLoader
-torch.cuda.set_device('cuda:1')
+#torch.cuda.set_device('cuda:1')
 
 from src.dataset.brats import dataset_loading
 from src.loss import EDiceLoss
@@ -156,10 +156,11 @@ def main(args):
     logging.info("We will also use automatic mixed precision approach in forward pass.")
 
     # Initializing scheduler
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-6, verbose=True)
+    #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-6, verbose=True)
+    scheduler = CosineAnnealingLR(optimizer, T_max=15, eta_min=0)
 
     # Start training phase
-    epochs_not_improve = 0
+    patience = 0
     best = np.inf
     patients_perf = []
     for epoch in range(args.start_epoch, args.epochs):
@@ -177,7 +178,7 @@ def main(args):
 
             te = time.perf_counter()
             logging.info(f"\nTrain Epoch done in {te - ts:.2f} seconds\n")
-            logging.info(f"Training loss: {training_loss}")
+            logging.info(f"Training loss: {training_loss:.4f}")
 
             # Validation phase
             if (epoch + 1) % args.val == 0:
@@ -192,7 +193,7 @@ def main(args):
 
                 if validation_loss < best:
                     logging.info("Best validation loss improved")
-                    epochs_not_improve = 0
+                    patience = 0
                     best = validation_loss
 
                     save_checkpoint(
@@ -205,20 +206,19 @@ def main(args):
                         ),
                         checkpoint_path=args.save_folder)
                 else:
-                    epochs_not_improve += 1
-                    logging.info(f"Best validation loss did not improve for {epochs_not_improve} apochs")
+                    patience += 1
+                    logging.info(f"Best validation loss did not improve for {patience} epochs")
 
                 ts = time.perf_counter()
                 logging.info(f"\nVal epoch done in {ts - te:.2f} seconds\n")
-                logging.info(f"Validation loss: {validation_loss}")
+                logging.info(f"Validation loss: {validation_loss:.4f}")
 
                 # Validation
                 scheduler.step(validation_loss)
 
             # Early stopping
-            #if (epoch / args.epochs > 0.25) and (epochs_not_improve > 30):
-            if epochs_not_improve > 15:
-                logging.info("\n Early Stopping now! The model hasn't improved in last 30 updates.\n")
+            if patience >= args.max_patience:
+                logging.info(f"\n Early Stopping now! The model hasn't improved in last {args.max_patience} updates.\n")
                 break
 
         except KeyboardInterrupt:
@@ -304,6 +304,7 @@ def step(
                 loss = torch.sum(torch.stack([criterion(s, ground_truth) for s in segmentation]))
             else:
                 loss = criterion(segmentation, ground_truth)
+                print(loss)
             patients_perf.append(dict(id=patient_id[0], epoch=epoch, split=mode, loss=loss.item()))
 
             # Checking not nan value
