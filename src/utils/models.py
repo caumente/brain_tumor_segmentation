@@ -15,7 +15,7 @@ from src.models.AttentionShallowUNet import AttentionShallowUNet
 from ranger import Ranger
 from ranger21 import Ranger21
 from monai.losses import DiceLoss, DiceFocalLoss, GeneralizedDiceLoss, DiceCELoss
-from src.loss import EDiceLoss
+from src.loss.RegionBasedDice import RegionBasedDiceLoss
 from monai.networks.nets import UNETR
 from src.models.nnUNet2021 import nnUNet2021
 
@@ -175,8 +175,11 @@ def loss_function_loading(loss_function: str = "dice") -> torch.nn.Module:
         loss_function_criterion = GeneralizedDiceLoss(include_background=True, sigmoid=True)
     elif loss_function == "dice_crossentropy":
         loss_function_criterion = DiceCELoss(include_background=True, sigmoid=True, squared_pred=True)
+    elif loss_function == "region_based_dice":
+        loss_function_criterion = RegionBasedDiceLoss(weight_region=[2, 0.7, 0.3], include_background=True, sigmoid=True)
     else:
-        print("Select a loss function allowed: ['dice', 'dice_focal', 'generalized_dice', 'dice_crossentropy']")
+        print("Select a loss function allowed: ['dice', 'dice_focal', 'generalized_dice', 'dice_crossentropy', "
+              "'region_based_dice']")
         sys.exit()
 
     return loss_function_criterion
