@@ -124,14 +124,25 @@ class Brats(Dataset):
         else:
             ground_truth = np.zeros((len(self.regions), sequences.shape[1], sequences.shape[2], sequences.shape[3]))
 
-        # Fit the sequences to the brain boundaries by cropping and the cropping/padding to the resolution defined
-        if self.fit_boundaries:
-            cropped_indexes, (sequences, ground_truth) = fit_brain_boundaries(sequences=sequences,
-                                                                              segmentation=ground_truth,
-                                                                              max_dims=self.crop_or_pad)
+        if self.data_augmentation:
+            # Fit the sequences to the brain boundaries by cropping and the cropping/padding to the resolution defined
+            if self.fit_boundaries:
+                cropped_indexes, (sequences, ground_truth) = fit_brain_boundaries(sequences=sequences,
+                                                                                  segmentation=ground_truth,
+                                                                                  max_dims=self.crop_or_pad)
 
-        # Cropping/padding to the resolution defined
-        sequences, ground_truth, random_indexes = random_pad_or_crop(sequences=sequences, segmentation=ground_truth, target_size=self.crop_or_pad)
+            # Cropping/padding to the resolution defined
+            sequences, ground_truth, random_indexes = random_pad_or_crop(sequences=sequences, segmentation=ground_truth, target_size=self.crop_or_pad)
+        else:
+            # Fit the sequences to the brain boundaries by cropping and the cropping/padding to the resolution defined
+            if self.fit_boundaries:
+                cropped_indexes, (sequences, ground_truth) = fit_brain_boundaries(sequences=sequences,
+                                                                                  segmentation=ground_truth,
+                                                                                  max_dims=[160, 224, 160])
+
+            # Cropping/padding to the resolution defined
+            sequences, ground_truth, random_indexes = random_pad_or_crop(sequences=sequences, segmentation=ground_truth,
+                                                                         target_size=[160, 224, 160])
 
         # Type casting for sequences and ground truth
        # if self.auto_cast_bool:
