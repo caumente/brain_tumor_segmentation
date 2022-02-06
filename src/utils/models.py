@@ -12,6 +12,7 @@ from src.models.Unet3D import UNet3D
 from src.models.VNet import VNet
 from src.models.ResidualShallowUNet import ResidualShallowUNet
 from src.models.AttentionShallowUNet import AttentionShallowUNet
+from src.models.DeepSupervisionDeepUNet import DeepSupervisionDeepUNet
 from ranger import Ranger
 from ranger21 import Ranger21
 from monai.losses import DiceLoss, DiceFocalLoss, GeneralizedDiceLoss, DiceCELoss
@@ -53,6 +54,8 @@ def create_model(
         model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
     elif architecture == 'DeepUNet':
         model = DeepUNet(sequences=len(sequences), regions=len(regions), width=width)
+    elif architecture == 'DeepSupervisionDeepUNet':
+        model = DeepSupervisionDeepUNet(sequences=len(sequences), regions=len(regions), width=width)
     elif architecture == 'AttentionShallowUNet':
         model = AttentionShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
     elif architecture == 'ResidualShallowUNet':
