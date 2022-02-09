@@ -16,7 +16,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
 from torch.utils.data import DataLoader
-#torch.cuda.set_device('cuda:1')
+torch.cuda.set_device('cuda:1')
 
 from src.dataset.brats import dataset_loading
 from src.loss import EDiceLoss
@@ -96,7 +96,7 @@ def main(args):
     num_gpus = torch.cuda.device_count()
     if num_gpus == 0:
         #raise RuntimeWarning("This process can not be carry out without a GPU")
-        print("This process may be too slow without a GPU")
+        logging.info("This process may be too slow without a GPU")
 
     # Converting crop_or_pad input to tuple
     args.crop_or_pad = tuple([int(i) for i in args.crop_or_pad]) if len(args.crop_or_pad) == 3 else None
@@ -123,6 +123,7 @@ def main(args):
     # init log
     init_time = time.perf_counter()
     init_log(log_name=f"./../experiments/{str(args.exp_name)}/execution.log")
+    logging.info(args)
 
     # If we use the sequences and its inverses sequences the number of sequences is the double
     if args.inverse_seq:
@@ -156,74 +157,88 @@ def main(args):
     logging.info("We will also use automatic mixed precision approach in forward pass.")
 
     # Initializing scheduler
-    #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-6, verbose=True)
-    scheduler = CosineAnnealingLR(optimizer, T_max=15, eta_min=0)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-6, verbose=True)
+    #scheduler = CosineAnnealingLR(optimizer, T_max=15, eta_min=0)
 
     # Start training phase
     patience = 0
     best = np.inf
     patients_perf = []
     for epoch in range(args.start_epoch, args.epochs):
-        try:
-            logging.info(f"\n······························ Epoch {epoch} ····································\n")
-            ts = time.perf_counter()
 
-            # Training phase
-            model.train()
-            training_loss = step(train_loader, model, criterion, metric, optimizer, epoch,
-                                 args.regions, scaler, save_folder=args.save_folder,
-                                 patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool)
-            with open(f"{args.save_folder}/Progress/progressTrain.txt", mode="a") as f:
-                print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_train': training_loss}, file=f)
+        logging.info(f"\n······························ Train Epoch {epoch} ····································\n")
+        ts = time.perf_counter()
+        mode = "train"
+        model.train()
+        training_loss = step(data_loader=train_loader,
+                             model=model,
+                             mode=mode,
+                             criterion=criterion,
+                             metric=metric,
+                             optimizer=optimizer,
+                             epoch=epoch,
+                             regions=args.regions,
+                             scaler=scaler,
+                             save_folder=args.save_folder,
+                             patients_perf=patients_perf,
+                             device=device,
+                             auto_cast_bool=args.auto_cast_bool
+                             )
+        with open(f"{args.save_folder}/Progress/progressTrain.txt", mode="a") as f:
+            print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_train': training_loss}, file=f)
+
+        te = time.perf_counter()
+        logging.info(f"\nTrain Epoch done in {te - ts:.2f} seconds")
+        logging.info(f"Training loss: {training_loss:.4f}")
+        logging.info(f"\n······························ Train Epoch {epoch} ····································\n")
+
+
+
+
+        if (epoch + 1) % args.val == 0:
+            logging.info(f"\n······························ Val Epoch {epoch} ····································\n")
+            ts = time.perf_counter()
+            model.eval()
+            mode = "val"
+            with torch.no_grad():
+                validation_loss = step(val_loader, model, mode, criterion, metric, optimizer, epoch,
+                                       args.regions, save_folder=args.save_folder,
+                                       patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool)
+                with open(f"{args.save_folder}/Progress/progressVal.txt", mode="a") as f:
+                    print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_val': validation_loss},
+                          file=f)
+
+            if validation_loss < best:
+                logging.info("\nBest validation loss improved")
+                patience, best = 0, validation_loss
+
+                save_checkpoint(
+                    dict(
+                        epoch=epoch,
+                        arch=args.architecture,
+                        state_dict=model.state_dict(),
+                        optimizer=optimizer.state_dict(),
+                        scheduler=scheduler.state_dict(),
+                    ),
+                    checkpoint_path=args.save_folder)
+            else:
+                patience += 1
+                logging.info(f"\nBest validation loss did not improve for {patience} epochs")
+            scheduler.step(validation_loss)
+
 
             te = time.perf_counter()
-            logging.info(f"\nTrain Epoch done in {te - ts:.2f} seconds\n")
-            logging.info(f"Training loss: {training_loss:.4f}")
+            logging.info(f"Val epoch done in {te - ts:.2f} seconds")
+            logging.info(f"Validation loss: {validation_loss:.4f}")
+            logging.info(f"\n······························ Val Epoch {epoch} ····································\n")
 
-            # Validation phase
-            if (epoch + 1) % args.val == 0:
-                model.eval()
-                with torch.no_grad():
-                    validation_loss = step(val_loader, model, criterion, metric, optimizer, epoch,
-                                           args.regions, save_folder=args.save_folder,
-                                           patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool)
-                    with open(f"{args.save_folder}/Progress/progressVal.txt", mode="a") as f:
-                        print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_val': validation_loss},
-                              file=f)
 
-                if validation_loss < best:
-                    logging.info("Best validation loss improved")
-                    patience = 0
-                    best = validation_loss
-
-                    save_checkpoint(
-                        dict(
-                            epoch=epoch,
-                            arch=args.architecture,
-                            state_dict=model.state_dict(),
-                            optimizer=optimizer.state_dict(),
-                            scheduler=scheduler.state_dict(),
-                        ),
-                        checkpoint_path=args.save_folder)
-                else:
-                    patience += 1
-                    logging.info(f"Best validation loss did not improve for {patience} epochs")
-
-                ts = time.perf_counter()
-                logging.info(f"\nVal epoch done in {ts - te:.2f} seconds\n")
-                logging.info(f"Validation loss: {validation_loss:.4f}")
-
-                # Validation
-                scheduler.step(validation_loss)
-
-            # Early stopping
-            if patience >= args.max_patience:
-                logging.info(f"\n Early Stopping now! The model hasn't improved in last {args.max_patience} updates.\n")
-                break
-
-        except KeyboardInterrupt:
-            logging.info("Stopping training loop, doing benchmark")
+        # Early stopping
+        if patience >= args.max_patience:
+            logging.info(f"\n Early Stopping now! The model hasn't improved in last {args.max_patience} updates.\n")
             break
+
+
 
     if args.debug_mode:
         save_checkpoint(
@@ -257,6 +272,7 @@ def main(args):
 def step(
         data_loader: torch.utils.data.Dataset,
         model: torch.nn.Module,
+        mode: str,
         criterion: EDiceLoss,
         metric,
         optimizer,
@@ -272,13 +288,10 @@ def step(
 ):
 
     #  <------------ SETUP --------------->
-    batch_time, data_time, losses = AverageMeter('Time', ':6.3f'), AverageMeter('Data', ':6.3f'), AverageMeter('Loss',
-                                                                                                               ':.4e')
+    batch_time, data_time, losses = AverageMeter('Time', ':6.3f'), AverageMeter('Data', ':6.3f'), AverageMeter('Loss', ':.4e')
 
-    mode = "train" if model.training else "val"
-    batch_per_epoch = len(data_loader)
     progress = ProgressMeter(
-        num_batches=batch_per_epoch,
+        num_batches=len(data_loader),
         meters=[batch_time, data_time, losses],
         prefix=f"{mode} Epoch: [{epoch}]")
     end = time.perf_counter()
@@ -304,7 +317,6 @@ def step(
                 loss = torch.sum(torch.stack([criterion(s, ground_truth) for s in segmentation]))
             else:
                 loss = criterion(segmentation, ground_truth)
-                print(loss)
             patients_perf.append(dict(id=patient_id[0], epoch=epoch, split=mode, loss=loss.item()))
 
             # Checking not nan value
@@ -313,7 +325,7 @@ def step(
             else:
                 logging.info("NaN in model loss!!")
 
-            if not model.training:
+            if mode == "val":
                 if type(segmentation) == list:
                     for s in segmentation:
                         metrics.extend(metric(s, ground_truth))
@@ -322,7 +334,7 @@ def step(
         #  <------------ FORWARD PASS --------------->
 
         #  <------------ BACKWARD PASS --------------->
-        if model.training:
+        if mode == "train":
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
@@ -336,7 +348,7 @@ def step(
         end = time.perf_counter()
         progress.display(i)
 
-    if not model.training:
+    if mode == "val":
         save_metrics(metrics=metrics, current_epoch=epoch, regions=regions, save_folder=save_folder)
 
     return losses.avg
@@ -347,7 +359,6 @@ def step(
 
 if __name__ == '__main__':
     arguments = load_parameters("arguments_experiment.txt")
-    print(arguments)
     seed_everything(seed=arguments.seed)
     #os.environ['CUDA_VISIBLE_DEVICES'] = arguments.devices
     main(arguments)
