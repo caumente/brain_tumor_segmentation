@@ -166,6 +166,13 @@ class Brats(Dataset):
             if random() < 0.5:
                 #sequences, ground_truth = sequences.flip(3), ground_truth.flip(3)
                 sequences, ground_truth = np.flip(sequences, 3), np.flip(ground_truth, 3)
+            if random() < 0.5:
+                #sequences, ground_truth = sequences.flip(3), ground_truth.flip(3)
+                sequences, ground_truth = np.flip(sequences, 2), np.flip(ground_truth, 2)
+            if random() < 0.5:
+                #sequences, ground_truth = sequences.flip(3), ground_truth.flip(3)
+                sequences, ground_truth = np.flip(sequences, 1), np.flip(ground_truth, 1)
+
 
         if self.auto_cast_bool:
             sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
@@ -382,6 +389,12 @@ def train_test_val_split_BraTS_2020(mapping, patients_path, seed, train_size=0.8
 
     train, val_ = train_test_split(mapping, train_size=train_size, random_state=int(seed), shuffle=True,
                                    stratify=mapping['Grade'])
+    LGGS = train[train.Grade == "LGG"]
+   # few_pixeles = train[train.name.isin(['086','087','141','262','263','264','265','266','268','269','271','272','275','278','279',
+   #                                      '280','281','286','289','291','294','295','297','298','299','304','305','306','307','310',
+   #                                      '311','312','313','315','319','321','322','324','325','329','330','335','361'])]
+   # train = pd.concat([train, LGGS, LGGS, few_pixeles, few_pixeles])
+    train = pd.concat([train, LGGS, LGGS])
     val, test = train_test_split(val_, test_size=0.5, random_state=int(seed), shuffle=True, stratify=val_['Grade'])
     train_idx, val_idx, test_idx = train.index, val.index, test.index
     log.info(f"Patients used for training:\n {train}")
