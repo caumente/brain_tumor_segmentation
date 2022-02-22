@@ -165,7 +165,7 @@ class RegionBasedDiceLoss(_Loss):
         f: torch.Tensor = 1.0 - (2.0 * intersection + self.smooth_nr) / (denominator + self.smooth_dr)
 
         # Weighting loss function for each region
-        weights = torch.tensor([self.weight_region])
+        weights = torch.tensor([self.weight_region]).to("cuda:1")
         f = f * weights
 
         if self.reduction == LossReduction.MEAN.value:
