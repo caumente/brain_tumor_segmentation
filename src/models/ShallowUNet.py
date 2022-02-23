@@ -16,9 +16,10 @@ class ShallowUNet(nn.Module):
 
     name = "Shallow U-Net"
 
-    def __init__(self, sequences, regions, width):
+    def __init__(self, sequences, regions, width, deep_supervision):
         super(ShallowUNet, self).__init__()
 
+        self.deep_supervision = deep_supervision
         widths = [width * 2 ** i for i in range(4)]
 
         # Encoders
@@ -39,7 +40,18 @@ class ShallowUNet(nn.Module):
         # Upsample, downsample and output steps
         self.upsample = nn.Upsample(scale_factor=2, mode="trilinear", align_corners=True)
         self.downsample = nn.MaxPool3d(2, 2)
-        self.output = conv1x1(widths[0] // 2, regions)
+
+
+        # Output
+        self.output3 = nn.Sequential(
+            nn.ConvTranspose3d(widths[1], widths[1], kernel_size=4, stride=4),
+            conv1x1(widths[1], regions)
+        )
+        self.output2 = nn.Sequential(
+            nn.ConvTranspose3d(widths[0], widths[0], kernel_size=2, stride=2),
+            conv1x1(widths[0], regions)
+        )
+        self.output1 = conv1x1(widths[0] // 2, regions)
 
         self.weights_initialization()
 
@@ -74,9 +86,16 @@ class ShallowUNet(nn.Module):
         d1 = self.decoder1(torch.cat([e1, up1], dim=1))
 
         # Output
-        output = self.output(d1)
+        if self.deep_supervision:
+            output3 = self.output3(d3)
+            output2 = self.output2(d2)
+            output1 = self.output1(d1)
 
-        return output
+            return [output3, output2, output1]
+        else:
+            output1 = self.output1(d1)
+
+            return output1
 
 
 
@@ -84,15 +103,17 @@ def test():
     seq_input = torch.rand(1, 4, 160, 224, 160)
     seq_ouput = torch.rand(1, 3, 160, 224, 160)
 
-    model = ShallowUNet(sequences=4, regions=3, width=24)
+    model = ShallowUNet(sequences=4, regions=3, width=24, deep_supervision=False)
     preds = model(seq_input)
 
     print(seq_input.shape)
-    print(preds.shape)
-
-    summary(model, (4, 160, 224, 160))
-
-    assert seq_ouput.shape == preds.shape
+    if model.deep_supervision:
+        for p in preds:
+            print(p.shape)
+            assert seq_ouput.shape == p.shape
+    else:
+        print(preds.shape)
+        assert seq_ouput.shape == preds.shape
 
 
 if __name__ == "__main__":

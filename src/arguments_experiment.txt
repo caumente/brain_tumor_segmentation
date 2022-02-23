@@ -1,8 +1,9 @@
 {
-  "architecture": "DeepUNet",
-  "width": 24,
+  "architecture": "ShallowUNet",
+  "width": 6,
   "sequences": ["_t1", "_t1ce", "_t2", "_flair"],
   "regions": ["et", "tc", "wt"],
+  "deep_supervision": true,
   "start_epoch": 0,
   "epochs": 100,
   "lr": 1e-3,
@@ -18,14 +19,13 @@
   "inverse_seq": false,
   "loss": "dice",
   "devices" : 0,
-  "debug_mode": false,
+  "debug_mode": true,
   "val": 1,
   "com": "BRATS2020_",
   "postprocessing_threshold": 200,
   "path_dataset": "./../datasets/BRATS2020/TrainingData/",
-  "auto_cast_bool": true,
-  "prob_augmentation": 0.5,
-  "flip_augmentation": true,
-  "gauss_noise_augmentation": true,
-  "production_training": true
+  "auto_cast_bool": false,
+  "production_training": false,
+  "max_patience": 20,
+  "oversampling": "LGG"
 }

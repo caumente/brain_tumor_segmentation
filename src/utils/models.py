@@ -12,7 +12,6 @@ from src.models.Unet3D import UNet3D
 from src.models.VNet import VNet
 from src.models.ResidualShallowUNet import ResidualShallowUNet
 from src.models.AttentionShallowUNet import AttentionShallowUNet
-from src.models.DeepSupervisionDeepUNet import DeepSupervisionDeepUNet
 from ranger import Ranger
 from ranger21 import Ranger21
 from monai.losses import DiceLoss, DiceFocalLoss, GeneralizedDiceLoss, DiceCELoss
@@ -26,7 +25,8 @@ def create_model(
         sequences: List[str],
         regions: Tuple[str],
         width: int = 48,
-        save_folder: Path = None
+        save_folder: Path = None,
+        deep_supervision: bool = False
 ) -> torch.nn.Module:
     """
     This function implement the architecture chosen.
@@ -51,11 +51,9 @@ def create_model(
     elif architecture == 'ResidualUNet':
         model = resunet_3d(sequences=len(sequences), regions=len(regions), witdh=width)
     elif architecture == 'ShallowUNet':
-        model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
+        model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
     elif architecture == 'DeepUNet':
-        model = DeepUNet(sequences=len(sequences), regions=len(regions), width=width)
-    elif architecture == 'DeepSupervisionDeepUNet':
-        model = DeepSupervisionDeepUNet(sequences=len(sequences), regions=len(regions), width=width)
+        model = DeepUNet(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
     elif architecture == 'AttentionShallowUNet':
         model = AttentionShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
     elif architecture == 'ResidualShallowUNet':
