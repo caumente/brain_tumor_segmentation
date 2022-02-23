@@ -15,7 +15,6 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 torch.cuda.set_device('cuda:1')
 
-from src.dataset.DataAugmenter import DataAugmenter
 from src.dataset.brats import dataset_loading
 from src.loss import EDiceLoss
 from src.utils.miscellany import AverageMeter, ProgressMeter
@@ -82,10 +81,10 @@ def main(args):
     # Loading datasets train-val-test and data augmenter
     train_loader = dataset_loading(args)
     logging.info(f"Length training set: {len(train_loader)}")
-    data_aug = DataAugmenter(
-        probability=args.prob_augmentation,
-        flip=args.flip_augmentation,
-        gaussian_noise=args.gauss_noise_augmentation)
+    # data_aug = DataAugmenter(
+    #     probability=args.prob_augmentation,
+    #     flip=args.flip_augmentation,
+    #     gaussian_noise=args.gauss_noise_augmentation)
 
     # optimizer
     optimizer = optimizer_loading(model=model, optimizer=args.optimizer, learning_rate=args.lr, num_epochs=args.epochs,
@@ -114,8 +113,10 @@ def main(args):
 
         # Training phase
         model.train()
+        # training_loss = step(train_loader, model, criterion, optimizer, epoch,scaler, patients_perf=patients_perf,
+        #                      device=device, auto_cast_bool=args.auto_cast_bool, data_augmentation=data_aug)
         training_loss = step(train_loader, model, criterion, optimizer, epoch,scaler, patients_perf=patients_perf,
-                             device=device, auto_cast_bool=args.auto_cast_bool, data_augmentation=data_aug)
+                             device=device, auto_cast_bool=args.auto_cast_bool)
         with open(f"{args.save_folder}/Progress/progressTrain.txt", mode="a") as f:
             print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_train': training_loss}, file=f)
 
@@ -144,7 +145,7 @@ def main(args):
 
         # Early stopping
         if patience > 10:
-            logging.info("\n Early Stopping now! The model hasn't improved in last 30 updates.\n")
+            logging.info("\n Early Stopping now! The model hasn't improved in last 10 updates.\n")
             break
 
 
@@ -164,8 +165,7 @@ def step(
         scheduler=None,
         patients_perf=None,
         device='cpu',
-        auto_cast_bool = False,
-        data_augmentation = None
+        auto_cast_bool = False
 ):
 
     #  <------------ SETUP --------------->
@@ -188,14 +188,7 @@ def step(
 
         #  <------------ FORWARD PASS --------------->
         with autocast(enabled=auto_cast_bool):
-            # If train dada augmentation, else just prediction
-            if mode == "train" and data_augmentation is not None:
-                inputs = data_augmentation(inputs)
-                segmentation = model(inputs)
-                segmentation = data_augmentation.reverse(segmentation)
-            else:
-                segmentation = model(inputs)
-
+            segmentation = model(inputs)
             # Evaluation
             if type(segmentation) == list:
                 loss = torch.sum(torch.stack([criterion(s, ground_truth) for s in segmentation]))
@@ -233,7 +226,7 @@ def step(
 
 if __name__ == '__main__':
     arguments = load_parameters("arguments_experiment.txt")
-    print(arguments)
+    logging.info(arguments)
     seed_everything(seed=arguments.seed)
     #os.environ['CUDA_VISIBLE_DEVICES'] = arguments.devices
     main(arguments)

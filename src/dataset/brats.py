@@ -132,7 +132,9 @@ class Brats(Dataset):
                                                                                   max_dims=self.crop_or_pad)
 
             # Cropping/padding to the resolution defined
-            sequences, ground_truth, random_indexes = random_pad_or_crop(sequences=sequences, segmentation=ground_truth, target_size=self.crop_or_pad)
+            sequences, ground_truth, random_indexes = random_pad_or_crop(sequences=sequences,
+                                                                         segmentation=ground_truth,
+                                                                         target_size=self.crop_or_pad)
         else:
             # Fit the sequences to the brain boundaries by cropping and the cropping/padding to the resolution defined
             if self.fit_boundaries:
@@ -141,21 +143,15 @@ class Brats(Dataset):
                                                                                   max_dims=[160, 224, 160])
 
             # Cropping/padding to the resolution defined
-            sequences, ground_truth, random_indexes = random_pad_or_crop(sequences=sequences, segmentation=ground_truth,
+            sequences, ground_truth, random_indexes = random_pad_or_crop(sequences=sequences,
+                                                                         segmentation=ground_truth,
                                                                          target_size=[160, 224, 160])
-
-        # Type casting for sequences and ground truth
-       # if self.auto_cast_bool:
-       #     sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
-       # else:
-       #     sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float32"), ground_truth.astype("bool")]]
 
         if self.data_augmentation:
             compose = transforms.Compose([
                 transforms.RandGaussianNoise(prob=0.3, mean=0, std=0.1),
                 transforms.RandStdShiftIntensity(factors=(1, 2), prob=0.1, nonzero=False, channel_wise=False),
                 transforms.RandAdjustContrast(prob=0.2, gamma=(1, 1.5)),
-                # transforms.MaskIntensity(mask_data=ground_truth),
                 transforms.RandGaussianSmooth(prob=0.1),
                 transforms.RandGibbsNoise(prob=0.1, alpha=(0.1, 0.2)),
                 transforms.RandKSpaceSpikeNoise(prob=0.1, intensity_range=(2, 4)),
@@ -167,10 +163,8 @@ class Brats(Dataset):
                 #sequences, ground_truth = sequences.flip(3), ground_truth.flip(3)
                 sequences, ground_truth = np.flip(sequences, 3), np.flip(ground_truth, 3)
             if random() < 0.5:
-                #sequences, ground_truth = sequences.flip(3), ground_truth.flip(3)
                 sequences, ground_truth = np.flip(sequences, 2), np.flip(ground_truth, 2)
             if random() < 0.5:
-                #sequences, ground_truth = sequences.flip(3), ground_truth.flip(3)
                 sequences, ground_truth = np.flip(sequences, 1), np.flip(ground_truth, 1)
 
 
@@ -193,7 +187,7 @@ class Brats(Dataset):
     def labels_to_regions(self, segmentation: np.ndarray) -> Tuple[bool, np.ndarray]:
         """
         This function takes as input the image of a medical segmentation and transform it into 3 images stacked. Each
-        of the dimensions correspond to the regions of interest.
+        of the dimensions corresponds to the regions of interest.
 
         - The region ET (enhancing tumor) is composed by the label 4
         - The region TC (necrotic & not enhancing tumor core) is composed by the labels 2 and 4
@@ -309,10 +303,12 @@ def get_datasets(
         crop_or_pad=(155, 240, 240),
         fit_boundaries=True,
         inverse_seq=False,
-        auto_cast_bool=True
+        auto_cast_bool=True,
+        oversampling=None,
+        production=False
 ):
 
-    # Checking if the path where the images are exist
+    # Checking if the path, where the images are, exists
     path_images = Path(path_images).resolve()
     assert path_images.exists(), f"Path '{path_images}' it doesn't exist"
     patients_dir = sorted([x for x in path_images.iterdir() if x.is_dir()])
@@ -330,7 +326,10 @@ def get_datasets(
         train_path, val_path, test_path = train_test_val_split_BraTS_2020(mapping=mapping,
                                                                           patients_path=patients_dir,
                                                                           seed=seed,
-                                                                          train_size=0.8)
+                                                                          train_size=0.8,
+                                                                          oversampling=oversampling,
+                                                                          production=production
+                                                                          )
 
     # Creating the train-validation-test datasets
     train_dataset = Brats(patients_path=train_path,
@@ -381,25 +380,40 @@ def get_datasets(
     return train_dataset, val_dataset, test_dataset
 
 
-def train_test_val_split_BraTS_2020(mapping, patients_path, seed, train_size=0.8):
+def train_test_val_split_BraTS_2020(
+        mapping:pd.DataFrame,
+        patients_path:str,
+        seed:int,
+        train_size:float = 0.8,
+        oversampling:str=None,
+        production:bool = False
+        ):
+
     """ This function splits the dataset into train-val-test based on a train_size."""
 
     mapping[['-', '--', 'name']] = mapping['BraTS_2020_subject_ID'].str.split("_", expand=True)
     mapping = mapping[['Grade', 'BraTS_2020_subject_ID', 'name']]
 
-    train, val_ = train_test_split(mapping, train_size=train_size, random_state=int(seed), shuffle=True,
-                                   stratify=mapping['Grade'])
-    LGGS = train[train.Grade == "LGG"]
-   # few_pixeles = train[train.name.isin(['086','087','141','262','263','264','265','266','268','269','271','272','275','278','279',
-   #                                      '280','281','286','289','291','294','295','297','298','299','304','305','306','307','310',
-   #                                      '311','312','313','315','319','321','322','324','325','329','330','335','361'])]
-   # train = pd.concat([train, LGGS, LGGS, few_pixeles, few_pixeles])
-    train = pd.concat([train, LGGS, LGGS])
+    train, val_ = train_test_split(mapping, train_size=train_size, random_state=int(seed), shuffle=True, stratify=mapping['Grade'])
     val, test = train_test_split(val_, test_size=0.5, random_state=int(seed), shuffle=True, stratify=val_['Grade'])
+
+    if not production:
+        if oversampling is not None:
+            train = oversample_dataset(train, strategy=oversampling)
+            log.info(f"Training set oversampled.")
+
+        log.info(f"{len(train)} patients used for training phase")
+        log.info(f"{len(val)} patients used for validation phase")
+        log.info(f"{len(test)} patients used for testing phase")
+
+    if production:
+        if oversampling is not None:
+            train = oversample_dataset(train, strategy='LGG')
+            val = oversample_dataset(val, strategy='LGG')
+            test = oversample_dataset(test, strategy='LGG')
+            log.info(f"Dataset oversampled.")
+
     train_idx, val_idx, test_idx = train.index, val.index, test.index
-    log.info(f"Patients used for training:\n {train}")
-    log.info(f"Patients used for validating:\n {val}")
-    log.info(f"Patients used for testing:\n {test}")
 
     train = [patients_path[i] for i in train_idx]
     val = [patients_path[i] for i in val_idx]
@@ -441,7 +455,9 @@ def dataset_loading(args):
                                                             crop_or_pad=args.crop_or_pad,
                                                             fit_boundaries=args.fit_boundaries,
                                                             inverse_seq=args.inverse_seq,
-                                                            auto_cast_bool=args.auto_cast_bool)
+                                                            auto_cast_bool=args.auto_cast_bool,
+                                                            oversampling=args.oversampling,
+                                                            production=args.production_training)
     if args.production_training:
         return DataLoader(ConcatDataset([train_dataset, val_dataset, test_dataset]), batch_size=args.batch_size,
                           shuffle=True, num_workers=args.workers, pin_memory=False, drop_last=True, persistent_workers=True)
@@ -453,3 +469,28 @@ def dataset_loading(args):
     test_loader = DataLoader(test_dataset, batch_size=1, num_workers=args.workers)
 
     return train_loader, val_loader, test_loader
+
+
+def oversample_dataset(df, strategy='LGG'):
+    """
+    This function oversamples the dataset copying the LGG patients, those that have few pixels in the ET region, or
+    taking both.
+    """
+    if strategy == 'LGG':
+        LGGS = df[df.Grade == "LGG"]
+        df = pd.concat([df, LGGS, LGGS])
+    elif strategy == 'few_ET':
+        few_pixeles = df[df.name.isin(['086', '087', '141', '262', '263', '264', '265', '266', '268', '269', '271',
+                                       '272', '275', '278', '279', '280', '281', '286', '289', '291', '294', '295',
+                                       '297', '298', '299', '304', '305', '306', '307', '310', '311', '312', '313',
+                                       '315', '319', '321', '322', '324', '325', '329', '330', '335', '361'])]
+        df = pd.concat([df, few_pixeles, few_pixeles])
+    elif strategy == "both":
+        LGGS = df[df.Grade == "LGG"]
+        few_pixeles = df[df.name.isin(['086', '087', '141', '262', '263', '264', '265', '266', '268', '269', '271',
+                                       '272', '275', '278', '279', '280', '281', '286', '289', '291', '294', '295',
+                                       '297', '298', '299', '304', '305', '306', '307', '310', '311', '312', '313',
+                                       '315', '319', '321', '322', '324', '325', '329', '330', '335', '361'])]
+        df = pd.concat([df, LGGS, LGGS, few_pixeles, few_pixeles])
+
+    return df

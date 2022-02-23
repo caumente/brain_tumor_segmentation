@@ -16,7 +16,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
 from torch.utils.data import DataLoader
-torch.cuda.set_device('cuda:1')
+#torch.cuda.set_device('cuda:1')
 
 from src.dataset.brats import dataset_loading
 from src.loss import EDiceLoss
@@ -131,7 +131,7 @@ def main(args):
 
     # Implementing the model and turning it from cpu to gpu
     model = create_model(architecture=args.architecture, sequences=args.sequences, regions=args.regions,
-                             width=args.width, save_folder=args.save_folder)
+                         width=args.width, save_folder=args.save_folder, deep_supervision=args.deep_supervision)
     model = model.to(device)
     # model = model.to(device) if num_gpus == 1 else torch.nn.DataParallel(model).to(device)
 
@@ -283,8 +283,7 @@ def step(
         save_folder=None,
         patients_perf=None,
         device='cpu',
-        auto_cast_bool = False,
-        data_augmentation = None
+        auto_cast_bool = False
 ):
 
     #  <------------ SETUP --------------->
@@ -304,15 +303,10 @@ def step(
 
         #  <------------ FORWARD PASS --------------->
         with autocast(enabled=auto_cast_bool):
-            # If train dada augmentation, else just prediction
-            if mode == "train" and data_augmentation is not None:
-                inputs = data_augmentation(inputs)
-                segmentation = model(inputs)
-                segmentation = data_augmentation.reverse(segmentation)
-            else:
-                segmentation = model(inputs)
 
-            # Evaluation
+            segmentation = model(inputs)
+
+            # Evaluation depending on whether deep supervision is implemented
             if type(segmentation) == list:
                 loss = torch.sum(torch.stack([criterion(s, ground_truth) for s in segmentation]))
             else:
