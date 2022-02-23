@@ -133,3 +133,31 @@ class AttentionGate(nn.Sequential):
                 ]
             )
         )
+
+
+
+
+class LevelBlock2x2(nn.Sequential):
+    """
+    This class stacks two blocks of ConvInNormLeReLU (3D Convolution, Instance Normalization and Leaky ReLU layers).
+
+    Params
+    ******
+        - in_channels: Number of input channels
+        - mid_channels: Number of channels between the first and the second block
+        - out_channels: Number of output channels
+
+    """
+
+    def __init__(self, in_channels, mid_channels, out_channels):
+        super(LevelBlock2x2, self).__init__(
+            OrderedDict(
+                [
+                    ('Conv1', nn.Conv3d(in_channels, mid_channels, kernel_size=(2, 2, 2), stride=1, padding=1)),
+                    ('InNorm1', nn.InstanceNorm3d(mid_channels)),
+                    ('LeakyReLU1', nn.LeakyReLU()),
+                    ('Conv2', nn.Conv3d(mid_channels, out_channels, kernel_size=(2, 2, 2), stride=1, padding=0)),
+                    ('InNorm2', nn.InstanceNorm3d(out_channels)),
+                    ('LeakyReLU2', nn.LeakyReLU())
+                ])
+        )
