@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from src.models.layers import conv1x1
-from src.models.layers import LevelBlock2x2
+from src.models.layers import LevelBlock
 #from src.utils.models import count_parameters
 
 
@@ -22,16 +22,16 @@ class UltraDeepUNet(nn.Module):
         widths = [width + (12*i) for i in range(10)]
 
         # Encoders
-        self.encoder1 = LevelBlock2x2(sequences, widths[0], widths[0])
-        self.encoder2 = LevelBlock2x2(widths[0], widths[1], widths[1])
-        self.encoder3 = LevelBlock2x2(widths[1], widths[2], widths[2])
-        self.encoder4 = LevelBlock2x2(widths[2], widths[3], widths[3])
-        self.encoder5 = LevelBlock2x2(widths[3], widths[4], widths[4])
-        self.encoder6 = LevelBlock2x2(widths[4], widths[5], widths[5])
-        self.encoder7 = LevelBlock2x2(widths[5], widths[6], widths[6])
-        self.encoder8 = LevelBlock2x2(widths[6], widths[7], widths[7])
-        self.encoder9 = LevelBlock2x2(widths[7], widths[8], widths[8])
-        self.encoder10 = LevelBlock2x2(widths[8], widths[9], widths[9])
+        self.encoder1 = LevelBlock(sequences, widths[0], widths[0])
+        self.encoder2 = LevelBlock(widths[0], widths[1], widths[1])
+        self.encoder3 = LevelBlock(widths[1], widths[2], widths[2])
+        self.encoder4 = LevelBlock(widths[2], widths[3], widths[3])
+        self.encoder5 = LevelBlock(widths[3], widths[4], widths[4])
+        self.encoder6 = LevelBlock(widths[4], widths[5], widths[5])
+        self.encoder7 = LevelBlock(widths[5], widths[6], widths[6])
+        self.encoder8 = LevelBlock(widths[6], widths[7], widths[7])
+        self.encoder9 = LevelBlock(widths[7], widths[8], widths[8])
+        self.encoder10 = LevelBlock(widths[8], widths[9], widths[9])
 
         # Downsamplings
         self.ads1 = nn.AdaptiveMaxPool3d(output_size=(140, 196, 140))
@@ -57,19 +57,19 @@ class UltraDeepUNet(nn.Module):
 
 
         # bottleneck
-        self.bottleneck = LevelBlock2x2(widths[9], widths[9], widths[9])
+        self.bottleneck = LevelBlock(widths[9], widths[9], widths[9])
 
         # Decoders
-        self.decoder10 = LevelBlock2x2(2 * widths[9], widths[9], widths[8])
-        self.decoder9 = LevelBlock2x2(2*widths[8], widths[8], widths[7])
-        self.decoder8 = LevelBlock2x2(2*widths[7], widths[7], widths[6])
-        self.decoder7 = LevelBlock2x2(2*widths[6], widths[6], widths[5])
-        self.decoder6 = LevelBlock2x2(2*widths[5], widths[5], widths[4])
-        self.decoder5 = LevelBlock2x2(2*widths[4], widths[4], widths[3])
-        self.decoder4 = LevelBlock2x2(2*widths[3], widths[3], widths[2])
-        self.decoder3 = LevelBlock2x2(2*widths[2], widths[2], widths[1])
-        self.decoder2 = LevelBlock2x2(2*widths[1], widths[1], widths[0])
-        self.decoder1 = LevelBlock2x2(2*widths[0], widths[0], widths[0] // 2)
+        self.decoder10 = LevelBlock(2 * widths[9], widths[9], widths[8])
+        self.decoder9 = LevelBlock(2*widths[8], widths[8], widths[7])
+        self.decoder8 = LevelBlock(2*widths[7], widths[7], widths[6])
+        self.decoder7 = LevelBlock(2*widths[6], widths[6], widths[5])
+        self.decoder6 = LevelBlock(2*widths[5], widths[5], widths[4])
+        self.decoder5 = LevelBlock(2*widths[4], widths[4], widths[3])
+        self.decoder4 = LevelBlock(2*widths[3], widths[3], widths[2])
+        self.decoder3 = LevelBlock(2*widths[2], widths[2], widths[1])
+        self.decoder2 = LevelBlock(2*widths[1], widths[1], widths[0])
+        self.decoder1 = LevelBlock(2*widths[0], widths[0], widths[0] // 2)
 
         # Output
         self.output4 = nn.Sequential(
@@ -89,14 +89,6 @@ class UltraDeepUNet(nn.Module):
         )
         self.output1 = conv1x1(widths[0] // 2, regions)
 
-        # self.pool1 = nn.Conv3d(sequences, width, kernel_size=(2, 2, 2), stride=2, padding=0)
-        # self.pool2 = nn.Conv3d(width, width, kernel_size=(2, 2, 2), stride=2, padding=0)
-        # self.conv2 = nn.Conv3d(sequences, width, kernel_size=(5, 5, 5), stride=1, padding=2)
-        # self.conv3 = nn.Conv3d(sequences, width, kernel_size=(7, 7, 7), stride=1, padding=3)
-        # self.conv4 = nn.Conv3d(sequences, width, kernel_size=(9, 9, 9), stride=1, padding=4)
-        # self.conv3 = nn.Conv3d(sequences, width, kernel_size=(3, 3, 3), stride=1)
-        # self.conv4 = nn.Conv3d(sequences, width, kernel_size=(3, 3, 3), stride=1)
-        # self.trans = PatchEmbeddingBlock(in_channels=4, img_size=(160, 224, 160), patch_size=8, hidden_size=64, num_heads=4, pos_embed="conv")
 
     def forward(self, x):
         # Encoding phase
@@ -164,7 +156,7 @@ def test():
 
     model = UltraDeepUNet(sequences=4, regions=3, width=6, deep_supervision=True)
     preds = model(seq_input)
-    print(count_parameters(model))
+    #print(count_parameters(model))
 
     print(seq_input.shape)
     if model.deep_supervision:
