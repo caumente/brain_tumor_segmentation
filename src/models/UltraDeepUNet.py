@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from src.models.layers import conv1x1
 from src.models.layers import LevelBlock2x2
-from src.utils.models import count_parameters
+#from src.utils.models import count_parameters
 
 
 class UltraDeepUNet(nn.Module):
