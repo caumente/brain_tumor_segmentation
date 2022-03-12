@@ -58,7 +58,7 @@ class Brats(Dataset):
         super(Brats, self).__init__()
 
         if sequences is None:
-            sequences = ["_t1", "_t2", "_t1ce", "_flair"]
+            sequences = ["_t1", "_t1ce","_t2", "_flair"]
         self.sequences = sequences
         self.has_ground_truth = has_ground_truth
         if self.has_ground_truth:

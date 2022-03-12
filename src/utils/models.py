@@ -5,12 +5,13 @@ import torch
 import logging
 from pathlib import Path
 from typing import List, Tuple
-from src.models.UltraDeepUNet import UltraDeepUNet
 from src.models.DeepUNet import DeepUNet
 from src.models.ResidualUNet import resunet_3d
 from src.models.ShallowUNet import ShallowUNet
+from src.models.MultiInputSkippedShallowUNet import MultiInputSkippedShallowUNet
 from src.models.Unet3D import UNet3D
 from src.models.VNet import VNet
+from src.models.UltraDeepUNet import UltraDeepUNet
 from src.models.ResidualShallowUNet import ResidualShallowUNet
 from src.models.AttentionShallowUNet import AttentionShallowUNet
 from ranger import Ranger
@@ -53,6 +54,8 @@ def create_model(
         model = resunet_3d(sequences=len(sequences), regions=len(regions), witdh=width)
     elif architecture == 'ShallowUNet':
         model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
+    elif architecture == 'MultiShallowUNet':
+        model = MultiInputSkippedShallowUNet(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
     elif architecture == 'DeepUNet':
         model = DeepUNet(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
     elif architecture == 'UltraDeepUNet':
