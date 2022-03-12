@@ -43,14 +43,15 @@ class ShallowUNet(nn.Module):
 
 
         # Output
-        self.output3 = nn.Sequential(
-            nn.ConvTranspose3d(widths[1], widths[1], kernel_size=4, stride=4),
-            conv1x1(widths[1], regions)
-        )
-        self.output2 = nn.Sequential(
-            nn.ConvTranspose3d(widths[0], widths[0], kernel_size=2, stride=2),
-            conv1x1(widths[0], regions)
-        )
+        if self.deep_supervision:
+            self.output3 = nn.Sequential(
+                nn.ConvTranspose3d(widths[1], widths[1], kernel_size=4, stride=4),
+                conv1x1(widths[1], regions)
+            )
+            self.output2 = nn.Sequential(
+                nn.ConvTranspose3d(widths[0], widths[0], kernel_size=2, stride=2),
+                conv1x1(widths[0], regions)
+            )
         self.output1 = conv1x1(widths[0] // 2, regions)
 
         self.weights_initialization()
