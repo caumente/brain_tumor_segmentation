@@ -19,13 +19,13 @@ from src.utils.miscellany import init_log
 
 
 
-experiment_name = "./../experiments/Prod_oversampling_postprocessing_BRATS2020_20220217_103425__DeepUNet_24_batch1_ranger_lr0.001_epochs190"
+experiment_name = "./../experiments/intensity_normalize20220309_221440__ShallowUNet_24_batch1_ranger_lr0.001_epochs400"
 
 with open(f"{experiment_name}/config_file.json", "r") as read_file:
     args = json.load(read_file)
     args = Namespace(**args)
 
-args.postprocessing_threshold = 400
+args.postprocessing_threshold = 4
 args.pathdata = "./../datasets/BRATS2020/ValidationData/"
 args.save_folder = Path(f"{experiment_name}/Inference_{experiment_name.split('/')[-1]}")
 print(args.pathdata)
@@ -50,7 +50,9 @@ device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('
 num_gpus = torch.cuda.device_count()
 
 # Implementing the model, turning it from cpu to gpu, and loading parameters
-model = create_model(architecture=args.architecture, sequences=args.sequences, regions=args.regions, width=args.width)
+if args.inverse_seq:
+    args.sequences = 2*args.sequences
+model = create_model(architecture=args.architecture, sequences=args.sequences, regions=args.regions, width=args.width, deep_supervision=args.deep_supervision)
 load_checkpoint(f'{str(experiment_name)}/model_best.pth.tar', model)
 
 
