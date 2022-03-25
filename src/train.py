@@ -1,4 +1,6 @@
 import sys
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 from os import path
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 import argparse
@@ -16,7 +18,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
 from torch.utils.data import DataLoader
-#torch.cuda.set_device('cuda:1')
+torch.cuda.set_device('cuda:1')
 
 from src.dataset.brats import dataset_loading
 from src.loss import EDiceLoss
