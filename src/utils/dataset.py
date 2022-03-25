@@ -29,24 +29,19 @@ def zscore_scaler(image: np.ndarray) -> np.ndarray:
     return image
 
 
-def cleaning_outliers_and_scaler(
+def cleaning_outlier_voxels(
         image: np.array,
         low_norm_percentile: int = 1,
         high_norm_percentile: int = 99,
-        scaler: str = "min_max"
 ) -> np.array:
     """
         This function cleans outliers voxels by means of clipping values to the percentiles interval 1-99.
-        After that the images are scaled using Min-Max or Z-score technique.
 
         Params:
         *******
             - image (np.array): image to process
             - low_norm_percentile (int, Optional): it defines the lower limit
             - high_norm_percentile (int, Optional): it defines the upper limit
-            - scaler (str, Optional): strategy to normalize the image.
-                - Min-Max: x-min(x)/(max(x)-min(x))
-                - Z-score: x-mean(x)/std(x)
 
         Return:
         *******
@@ -57,6 +52,26 @@ def cleaning_outliers_and_scaler(
     non_zeros = image > 0
     low, high = np.percentile(image[non_zeros], [low_norm_percentile, high_norm_percentile])
     image = np.clip(image, low, high)
+
+    return image
+
+def scaler(
+        image: np.array,
+        scaler: str = "min_max"
+) -> np.array:
+    """
+        This function scales the images using Min-Max or Z-score technique.
+
+        Params:
+        *******
+            - scaler (str, Optional): strategy to normalize the image.
+                - Min-Max: x-min(x)/(max(x)-min(x))
+                - Z-score: x-mean(x)/std(x)
+
+        Return:
+        *******
+            - image: image post-process
+    """
 
     # Image normalization
     if scaler == "min_max":
@@ -236,3 +251,23 @@ def flip_image(image: Union[torch.Tensor, np.ndarray], rand_axis=None):
         image = np.flip(image, [rand_axis])
 
     return image, rand_axis
+
+
+def image_histogram_equalization(image: np.array, number_bins: int=256, scaler="min_max") -> np.array:
+    # from http://www.janeriksolem.net/histogram-equalization-with-python-and.html
+
+    # get image histogram
+    image_histogram, bins = np.histogram(image.flatten(), number_bins, density=True)
+    cdf = image_histogram.cumsum() # cumulative distribution function
+    cdf = 255 * cdf / cdf[-1] # normalize
+
+    # use linear interpolation of cdf to find new pixel values
+    image_equalized = np.interp(image.flatten(), bins[:-1], cdf)
+
+    # Image normalization
+    if scaler == "min_max":
+        image = min_max_scaler(image)
+    elif scaler == "z_score":
+        image = zscore_scaler(image)
+
+    return image_equalized.reshape(image.shape)

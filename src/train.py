@@ -343,7 +343,7 @@ def step(
         progress.display(i)
 
     if mode == "val":
-        save_metrics(metrics=metrics, current_epoch=epoch, regions=regions, save_folder=save_folder)
+        save_metrics(metrics=metrics, current_epoch=epoch, loss=losses.avg, regions=regions, save_folder=save_folder)
 
     return losses.avg
 
@@ -354,5 +354,5 @@ def step(
 if __name__ == '__main__':
     arguments = load_parameters("arguments_experiment.txt")
     seed_everything(seed=arguments.seed)
-    #os.environ['CUDA_VISIBLE_DEVICES'] = arguments.devices
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     main(arguments)

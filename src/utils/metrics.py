@@ -84,6 +84,7 @@ def calculate_metrics(
 def save_metrics(
         metrics: List[torch.Tensor],
         current_epoch: int,
+        loss : float,
         regions: List[str],
         save_folder: Path = None
 ):
@@ -95,13 +96,14 @@ def save_metrics(
     *******
         - metrics (torch.nn.Module): model used to compute the segmentation
         - current_epoch (int): number of current epoch
+        - loss (float): averaged validation loss
         - classes (List[String]): regions to predict
         - save_folder (Path): path where the model state is saved
 
     Return:
     *******
-        - It does not return anything. However, it generates a .txt file where is stored the results got in the
-        validation step. filename = validation_error.txt
+        - It does not return anything. However, it generates a .txt file where the results got in the
+        validation step are stored. filename = validation_error.txt
     """
 
     metrics = list(zip(*metrics))
@@ -109,7 +111,8 @@ def save_metrics(
     metrics = {key: value for key, value in zip(regions, metrics)}
     logging.info(f"\nEpoch {current_epoch} -> "
           f"Val: {[f'{key.upper()} : {np.nanmean(value):.4f}' for key, value in metrics.items()]} -> "
-          f"Average: {np.mean([np.nanmean(value) for key, value in metrics.items()]):.4f}"
+          f"Average: {np.mean([np.nanmean(value) for key, value in metrics.items()]):.4f} "
+          f"\t Loss Average: {loss:.4f} "
           )
 
 
@@ -117,7 +120,8 @@ def save_metrics(
     with open(f"{save_folder}/validation_error.txt", mode="a") as f:
         print(f"Epoch {current_epoch} -> "
               f"Val: {[f'{key.upper()} : {np.nanmean(value):.4f}' for key, value in metrics.items()]} -> "
-              f"Average: {np.mean([np.nanmean(value) for key, value in metrics.items()]):.4f}",
+              f"Average: {np.mean([np.nanmean(value) for key, value in metrics.items()]):.4f}"
+              f"\t Loss Average: {loss:.4f} ",
               file=f)
 
 

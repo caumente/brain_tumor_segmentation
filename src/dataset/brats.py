@@ -13,10 +13,12 @@ from torch import from_numpy
 from torch.utils.data import DataLoader, ConcatDataset
 from torch.utils.data.dataset import Dataset
 
-from src.utils.dataset import cleaning_outliers_and_scaler
+from src.utils.dataset import cleaning_outlier_voxels
 from src.utils.dataset import fit_brain_boundaries
 from src.utils.dataset import load_nii
 from src.utils.dataset import random_pad_or_crop
+from src.utils.dataset import image_histogram_equalization
+from src.utils.dataset import scaler
 
 
 class Brats(Dataset):
@@ -48,6 +50,8 @@ class Brats(Dataset):
             normalization: bool = True,
             low_percentile: int = 1,
             high_percentile: int = 99,
+            clipping:bool = True,
+            histogram_equalization: bool = True,
             crop_or_pad: tuple = (155, 240, 240),
             fit_boundaries: bool = True,
             inverse_seq: bool = False,
@@ -65,8 +69,10 @@ class Brats(Dataset):
             self.sequences += ["_seg"]
         self.regions = regions
         self.normalization = normalization
+        self.clipping = clipping
         self.low_norm_percentile = low_percentile
         self.high_norm_percentile = high_percentile
+        self.histogram_equalization = histogram_equalization
         self.crop_or_pad = crop_or_pad
         self.fit_boundaries = fit_boundaries
         self.inverse_sec = inverse_seq
@@ -104,13 +110,25 @@ class Brats(Dataset):
         if self.has_ground_truth:
             ground_truth = load_nii(patient_info["seg"])
 
-        # Sequences normalization and stacking
-        if self.normalization:
-            sequences = {key: cleaning_outliers_and_scaler(
+        # Sequences clipping, equalization, normalization and stacking
+        if self.clipping:
+            log.info("Clipping images")
+            sequences = {key: cleaning_outlier_voxels(
                 image=sequences[key],
                 low_norm_percentile=self.low_norm_percentile,
                 high_norm_percentile=self.high_norm_percentile
             ) for key in sequences}
+
+        if self.histogram_equalization:
+            log.info("Equalizating histograms")
+            sequences = {key: image_histogram_equalization(image=sequences[key]) for key in sequences}
+
+        if self.normalization:
+            log.info("Images normalization")
+            sequences = {key: scaler(
+                image=sequences[key]
+            ) for key in sequences}
+
         sequences = np.stack([sequences[sequence] for sequence in sequences])
 
         # Sequences inversion
@@ -298,10 +316,12 @@ def get_datasets(
         has_ground_truth=True,
         path_images="",
         normalization=True,
+        clipping=True,
         low_norm_percentile=1,
         high_norm_percentile=99,
         crop_or_pad=(155, 240, 240),
         fit_boundaries=True,
+        histogram_equalization=True,
         inverse_seq=False,
         auto_cast_bool=True,
         oversampling=None,
@@ -337,10 +357,12 @@ def get_datasets(
                           has_ground_truth=has_ground_truth,
                           regions=regions,
                           normalization=normalization,
+                          clipping=clipping,
                           low_percentile=low_norm_percentile,
                           high_percentile=high_norm_percentile,
                           crop_or_pad=crop_or_pad,
                           fit_boundaries=fit_boundaries,
+                          histogram_equalization=histogram_equalization,
                           inverse_seq=inverse_seq,
                           debug_mode=debug_mode,
                           auto_cast_bool=auto_cast_bool,
@@ -350,10 +372,12 @@ def get_datasets(
                         has_ground_truth=has_ground_truth,
                         regions=regions,
                         normalization=normalization,
+                        clipping=clipping,
                         low_percentile=low_norm_percentile,
                         high_percentile=high_norm_percentile,
                         crop_or_pad=crop_or_pad,
                         fit_boundaries=fit_boundaries,
+                        histogram_equalization=histogram_equalization,
                         inverse_seq=inverse_seq,
                         debug_mode=debug_mode,
                         auto_cast_bool=auto_cast_bool)
@@ -362,10 +386,12 @@ def get_datasets(
                          has_ground_truth=has_ground_truth,
                          regions=regions,
                          normalization=normalization,
+                         clipping=clipping,
                          low_percentile=low_norm_percentile,
                          high_percentile=high_norm_percentile,
                          crop_or_pad=crop_or_pad,
                          fit_boundaries=fit_boundaries,
+                         histogram_equalization=histogram_equalization,
                          inverse_seq=inverse_seq,
                          debug_mode=debug_mode,
                          auto_cast_bool=auto_cast_bool)
@@ -422,7 +448,6 @@ def train_test_val_split_BraTS_2020(
     return train, val, test
 
 
-
 def train_test_val_split_BraTS_2021(mapping, patients_path, seed, train_size=0.8):
     """ This function splits the dataset into train-val-test based on a train_size."""
 
@@ -441,7 +466,6 @@ def train_test_val_split_BraTS_2021(mapping, patients_path, seed, train_size=0.8
     return train, val, test
 
 
-
 def dataset_loading(args):
     train_dataset, val_dataset, test_dataset = get_datasets(sequences=args.sequences,
                                                             regions=args.regions,
@@ -450,10 +474,12 @@ def dataset_loading(args):
                                                             path_images=args.path_dataset,
                                                             has_ground_truth=True,
                                                             normalization=args.normalization,
+                                                            clipping=args.clipping,
                                                             low_norm_percentile=args.low_norm,
                                                             high_norm_percentile=args.high_norm,
                                                             crop_or_pad=args.crop_or_pad,
                                                             fit_boundaries=args.fit_boundaries,
+                                                            histogram_equalization=args.histogram_equalization,
                                                             inverse_seq=args.inverse_seq,
                                                             auto_cast_bool=args.auto_cast_bool,
                                                             oversampling=args.oversampling,
