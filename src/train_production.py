@@ -13,7 +13,7 @@ import numpy as np
 import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-torch.cuda.set_device('cuda:1')
+#torch.cuda.set_device('cuda:1')
 
 from src.dataset.brats import dataset_loading
 from src.loss import EDiceLoss
@@ -71,7 +71,7 @@ def main(args):
 
     # Implementing the model and turning it from cpu to gpu
     model = create_model(architecture=args.architecture, sequences=args.sequences, regions=args.regions,
-                             width=args.width, save_folder=args.save_folder)
+                         width=args.width, save_folder=args.save_folder, deep_supervision=args.deep_supervision)
     model = model.to(device)
 
     # Implementing loss function and metric
@@ -79,12 +79,9 @@ def main(args):
 
 
     # Loading datasets train-val-test and data augmenter
+    args.production_training = True
     train_loader = dataset_loading(args)
     logging.info(f"Length training set: {len(train_loader)}")
-    # data_aug = DataAugmenter(
-    #     probability=args.prob_augmentation,
-    #     flip=args.flip_augmentation,
-    #     gaussian_noise=args.gauss_noise_augmentation)
 
     # optimizer
     optimizer = optimizer_loading(model=model, optimizer=args.optimizer, learning_rate=args.lr, num_epochs=args.epochs,
@@ -113,8 +110,6 @@ def main(args):
 
         # Training phase
         model.train()
-        # training_loss = step(train_loader, model, criterion, optimizer, epoch,scaler, patients_perf=patients_perf,
-        #                      device=device, auto_cast_bool=args.auto_cast_bool, data_augmentation=data_aug)
         training_loss = step(train_loader, model, criterion, optimizer, epoch,scaler, patients_perf=patients_perf,
                              device=device, auto_cast_bool=args.auto_cast_bool)
         with open(f"{args.save_folder}/Progress/progressTrain.txt", mode="a") as f:
@@ -226,7 +221,6 @@ def step(
 
 if __name__ == '__main__':
     arguments = load_parameters("arguments_experiment.txt")
-    logging.info(arguments)
     seed_everything(seed=arguments.seed)
-    #os.environ['CUDA_VISIBLE_DEVICES'] = arguments.devices
+    #os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     main(arguments)

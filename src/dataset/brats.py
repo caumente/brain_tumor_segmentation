@@ -434,9 +434,9 @@ def train_test_val_split_BraTS_2020(
 
     if production:
         if oversampling is not None:
-            train = oversample_dataset(train, strategy='LGG')
-            val = oversample_dataset(val, strategy='LGG')
-            test = oversample_dataset(test, strategy='LGG')
+            train = oversample_dataset(train, strategy=oversampling)
+            val = oversample_dataset(val, strategy=oversampling)
+            test = oversample_dataset(test, strategy=oversampling)
             log.info(f"Dataset oversampled.")
 
     train_idx, val_idx, test_idx = train.index, val.index, test.index
