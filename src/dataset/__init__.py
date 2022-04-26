@@ -1,1 +1,1 @@
-from src.dataset.brats import get_datasets
+from src.dataset.BraTS_dataset import get_datasets

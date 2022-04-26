@@ -85,7 +85,7 @@ def scaler(
 def fit_brain_boundaries(
         sequences: np.ndarray,
         segmentation: np.ndarray,
-        max_dims: list
+        max_dims: tuple
 ) -> Union[List[Tuple[int, int]], Tuple[np.ndarray, np.ndarray]]:
     """
     This function crop the sequences and its segmentation removing as much background as possible. As result, the

@@ -12,7 +12,7 @@ from torch.cuda.amp import autocast
 from SimpleITK import GetImageFromArray, GetArrayFromImage, WriteImage, ReadImage
 from ..utils.metrics import METRICS
 from ..utils.metrics import calculate_metrics
-from ..dataset.brats import recover_initial_resolution
+from ..dataset.BraTS_dataset import recover_initial_resolution
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -190,7 +190,7 @@ def generate_segmentations(
 
     metrics_list = []
     for _, batch in enumerate(data_loader):
-        ref_path = ['./../datasets/BRATS2021/TrainingData/BraTS2021_00000/BraTS2021_00000_seg.nii.gz']
+        ref_path = ['./../datasets/BRATS2020/TrainingData/BraTS20_Training_001/BraTS20_Training_001_seg.nii.gz']
         # Getting image attributes
         sequences = batch["sequences"]
         ground_truth = batch["ground_truth"][0].cpu().numpy()

@@ -15,7 +15,7 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 #torch.cuda.set_device('cuda:1')
 
-from src.dataset.brats import dataset_loading
+from src.dataset.BraTS_Dataloader import dataset_loading
 from src.loss import EDiceLoss
 from src.utils.miscellany import AverageMeter, ProgressMeter
 from src.utils.miscellany import init_log, save_args, seed_everything

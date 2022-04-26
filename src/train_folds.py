@@ -18,7 +18,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau  # CosineAnnealingLR
 from torch.utils.data import DataLoader
 # torch.cuda.set_device('cuda:1')
 
-from src.dataset.BraTS_dataset import dataset_loading
+from src.dataset.BraTS_dataset_folds_oversampled import folded_dataset_loading
 from src.loss import EDiceLoss
 from src.utils.metrics import save_metrics
 from src.utils.miscellany import AverageMeter, ProgressMeter
@@ -100,7 +100,6 @@ def main(args):
 
     # Converting crop_or_pad input to tuple
     args.crop_or_pad = tuple([int(i) for i in args.crop_or_pad]) if len(args.crop_or_pad) == 3 else None
-
     # Setting up experiment name and folders
     current_experiment_time = datetime.now().strftime('%Y%m%d_%T').replace(":", "")
     args.exp_name = f"{args.com.replace(' ', '_') if args.com else ''}" \
@@ -114,11 +113,7 @@ def main(args):
                     f"_epochs{args.epochs}"
     args.save_folder = Path(f"./../experiments/{args.exp_name}")
     args.save_folder.mkdir(parents=True, exist_ok=True)
-    args.seg_folder = args.save_folder / "segs"
-    args.seg_folder.mkdir(parents=True, exist_ok=True)
-    os.mkdir(args.save_folder / "Progress/")
     args.save_folder = args.save_folder.resolve()
-    save_args(args)  # store config as .yaml file
 
     # init log
     init_time = time.perf_counter()
@@ -129,133 +124,133 @@ def main(args):
     if args.inverse_seq:
         args.sequences = 2 * args.sequences
 
-    # Implementing the model and turning it from cpu to gpu
-    model = create_model(architecture=args.architecture, sequences=args.sequences, regions=args.regions,
-                         width=args.width, save_folder=args.save_folder, deep_supervision=args.deep_supervision)
-    model = model.to(device)
-    # model = model.to(device) if num_gpus == 1 else torch.nn.DataParallel(model).to(device)
-
-    # Implementing loss function and metric
-    criterion = loss_function_loading(loss_function=args.loss).to(device)
-    metric = EDiceLoss(classes=args.regions).to(device).metric
-
     # Loading datasets train-val-test and data augmenter
-    train_loader, val_loader, test_loader = dataset_loading(args)
+    fold_train_loader, val_loader = folded_dataset_loading(args)
+    # Added to create the model without considering the "_seg" as another sequence more
+    if "_seg" in args.sequences:
+        args.sequences.remove("_seg")
 
-    # optimizer
-    optimizer = optimizer_loading(model=model, optimizer=args.optimizer, learning_rate=args.lr, num_epochs=args.epochs,
-                                  num_batches_per_epoch=len(train_loader))
+    for n, train_loader in enumerate(fold_train_loader):
+        logging.info(f"\n************* FOLD {n} *************")
 
-    # Custom configuration for a debug run
-    if args.debug_mode:
-        args.epochs = 1
-        args.val = 1
+        args.save_folder = Path(f"./../experiments/{args.exp_name}/fold{n}")
+        args.save_folder.mkdir(parents=True, exist_ok=True)
+        args.seg_folder = args.save_folder / "segs"
+        os.mkdir(args.save_folder / "Progress/")
+        args.save_folder = args.save_folder.resolve()
+        save_args(args)  # store config as .yaml file
 
-    # Gradient scaler
-    logging.info("Using gradient scaling over losses to prevent underflow in backward pass.")
-    scaler = GradScaler()
-    logging.info("We will also use automatic mixed precision approach in forward pass.")
+        # Implementing the model and turning it from cpu to gpu
+        model = create_model(architecture=args.architecture, sequences=args.sequences, regions=args.regions,
+                             width=args.width, save_folder=args.save_folder, deep_supervision=args.deep_supervision)
+        model = model.to(device)
 
-    # Initializing scheduler
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-6, verbose=True)
-    # scheduler = CosineAnnealingLR(optimizer, T_max=15, eta_min=0)
+        # Implementing loss function and metric
+        criterion = loss_function_loading(loss_function=args.loss).to(device)
+        metric = EDiceLoss(classes=args.regions).to(device).metric
 
-    # Start training phase
-    patience = 0
-    best = np.inf
-    patients_perf = []
-    for epoch in range(args.start_epoch, args.epochs):
+        # optimizer
+        optimizer = optimizer_loading(model=model, optimizer=args.optimizer, learning_rate=args.lr,
+                                      num_epochs=args.epochs, num_batches_per_epoch=len(train_loader)
+                                      )
 
-        logging.info(f"\n······························ Train Epoch {epoch} ····································\n")
-        ts = time.perf_counter()
-        mode = "train"
-        model.train()
-        training_loss = step(data_loader=train_loader,
-                             model=model,
-                             mode=mode,
-                             criterion=criterion,
-                             metric=metric,
-                             optimizer=optimizer,
-                             epoch=epoch,
-                             regions=args.regions,
-                             scaler=scaler,
-                             save_folder=args.save_folder,
-                             patients_perf=patients_perf,
-                             device=device,
-                             auto_cast_bool=args.auto_cast_bool
-                             )
-        with open(f"{args.save_folder}/Progress/progressTrain.txt", mode="a") as f:
-            print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_train': training_loss}, file=f)
+        # Custom configuration for a debug run
+        if args.debug_mode:
+            args.epochs = 1
+            args.val = 1
 
-        te = time.perf_counter()
-        logging.info(f"\nTrain Epoch done in {te - ts:.2f} seconds")
-        logging.info(f"Training loss: {training_loss:.4f}")
-        logging.info(f"\n······························ Train Epoch {epoch} ····································\n")
+        # Gradient scaler
+        logging.info("Using gradient scaling over losses to prevent underflow in backward pass.")
+        scaler = GradScaler()
+        logging.info("We will also use automatic mixed precision approach in forward pass.")
 
-        if (epoch + 1) % args.val == 0:
-            logging.info(f"\n······························ Val Epoch {epoch} ····································\n")
+        # Initializing scheduler
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-6, verbose=True)
+
+
+        # Start training phase
+        patience = 0
+        best = np.inf
+        patients_perf = []
+        for epoch in range(args.start_epoch, args.epochs):
+
+            logging.info(f"\n······························ Train Epoch {epoch} ····································\n")
             ts = time.perf_counter()
-            model.eval()
-            mode = "val"
-            with torch.no_grad():
-                validation_loss = step(val_loader, model, mode, criterion, metric, optimizer, epoch,
-                                       args.regions, save_folder=args.save_folder,
-                                       patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool)
-                with open(f"{args.save_folder}/Progress/progressVal.txt", mode="a") as f:
-                    print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_val': validation_loss},
-                          file=f)
-
-            if validation_loss < best:
-                logging.info("\nBest validation loss improved")
-                patience, best = 0, validation_loss
-
-                save_checkpoint(
-                    dict(
-                        epoch=epoch,
-                        arch=args.architecture,
-                        state_dict=model.state_dict(),
-                        optimizer=optimizer.state_dict(),
-                        scheduler=scheduler.state_dict(),
-                    ),
-                    checkpoint_path=args.save_folder)
-            else:
-                patience += 1
-                logging.info(f"\nBest validation loss did not improve for {patience} epochs")
-            scheduler.step(validation_loss)
+            mode = "train"
+            model.train()
+            training_loss = step(data_loader=train_loader,
+                                 model=model,
+                                 mode=mode,
+                                 criterion=criterion,
+                                 metric=metric,
+                                 optimizer=optimizer,
+                                 epoch=epoch,
+                                 regions=args.regions,
+                                 scaler=scaler,
+                                 save_folder=args.save_folder,
+                                 patients_perf=patients_perf,
+                                 device=device,
+                                 auto_cast_bool=args.auto_cast_bool
+                                 )
+            with open(f"{args.save_folder}/Progress/progressTrain.txt", mode="a") as f:
+                print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_train': training_loss}, file=f)
 
             te = time.perf_counter()
-            logging.info(f"Val epoch done in {te - ts:.2f} seconds")
-            logging.info(f"Validation loss: {validation_loss:.4f}")
-            logging.info(f"\n······························ Val Epoch {epoch} ····································\n")
+            logging.info(f"\nTrain Epoch done in {te - ts:.2f} seconds")
+            logging.info(f"Training loss: {training_loss:.4f}")
+            logging.info(f"\n······························ Train Epoch {epoch} ····································\n")
 
-        # Early stopping
-        if patience >= args.max_patience:
-            logging.info(f"\n Early Stopping now! The model hasn't improved in last {args.max_patience} updates.\n")
-            break
+            if (epoch + 1) % args.val == 0:
+                logging.info(f"\n······························ Val Epoch {epoch} ····································\n")
+                ts = time.perf_counter()
+                model.eval()
+                mode = "val"
+                with torch.no_grad():
+                    validation_loss = step(val_loader, model, mode, criterion, metric, optimizer, epoch,
+                                           args.regions, save_folder=args.save_folder,
+                                           patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool)
+                    with open(f"{args.save_folder}/Progress/progressVal.txt", mode="a") as f:
+                        print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_val': validation_loss},
+                              file=f)
 
-    if args.debug_mode:
-        save_checkpoint(
-            dict(
-                epoch=args.epochs,
-                arch=args.architecture,
-                state_dict=model.state_dict(),
-                optimizer=optimizer.state_dict()
-            ),
-            checkpoint_path=args.save_folder)
+                if validation_loss < best:
+                    logging.info("\nBest validation loss improved")
+                    patience, best = 0, validation_loss
 
-    try:
-        df_individual_perf = pd.DataFrame.from_records(patients_perf)
-        df_individual_perf.to_csv(path_or_buf=Path(f'{str(args.save_folder)}/patients_indiv_perf.csv'))
-        logging.info(df_individual_perf)
+                    save_checkpoint(
+                        dict(
+                            epoch=epoch,
+                            arch=args.architecture,
+                            state_dict=model.state_dict(),
+                            optimizer=optimizer.state_dict(),
+                            scheduler=scheduler.state_dict(),
+                        ),
+                        checkpoint_path=args.save_folder
+                    )
+                else:
+                    patience += 1
+                    logging.info(f"\nBest validation loss did not improve for {patience} epochs")
+                scheduler.step(validation_loss)
 
-        logging.info("\n**********************************************************")
-        logging.info("********** START VALIDATION OVER TEST DATASET ************")
-        logging.info("**********************************************************\n")
+                te = time.perf_counter()
+                logging.info(f"Val epoch done in {te - ts:.2f} seconds")
+                logging.info(f"Validation loss: {validation_loss:.4f}")
+                logging.info(f"\n······························ Val Epoch {epoch} ····································\n")
 
-        load_checkpoint(f'{str(args.save_folder)}/model_best.pth.tar', model)
-        generate_segmentations(test_loader, model, args, device=device)
-    except KeyboardInterrupt:
-        logging.info("Stopping right now!")
+            # Early stopping
+            if patience >= args.max_patience:
+                logging.info(f"\n Early Stopping now! The model hasn't improved in last {args.max_patience} updates.\n")
+                break
+
+        if args.debug_mode:
+            save_checkpoint(
+                dict(
+                    epoch=args.epochs,
+                    arch=args.architecture,
+                    state_dict=model.state_dict(),
+                    optimizer=optimizer.state_dict()
+                ),
+                checkpoint_path=args.save_folder)
 
     # Ending process
     end_time = time.perf_counter()

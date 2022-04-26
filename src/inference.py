@@ -13,7 +13,7 @@ from src.utils.models import create_model
 from src.utils.miscellany import generate_segmentations
 from src.utils.miscellany import seed_everything
 import torch
-from src.dataset.brats import Brats
+from src.dataset.BraTS_Dataloader import Brats
 from src.utils.miscellany import init_log
 
 
