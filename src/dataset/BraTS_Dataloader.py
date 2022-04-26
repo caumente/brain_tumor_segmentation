@@ -109,7 +109,7 @@ class Brats(Dataset):
 
         # Sequences clipping, equalization, normalization and stacking
         if self.clipping:
-            log.info("Clipping images")
+            # log.info("Clipping images")
             sequences = {key: cleaning_outlier_voxels(
                 image=sequences[key],
                 low_norm_percentile=self.low_norm_percentile,
@@ -117,11 +117,11 @@ class Brats(Dataset):
             ) for key in sequences}
 
         if self.histogram_equalization:
-            log.info("Equalizating histograms")
+            # log.info("Equalizing histograms")
             sequences = {key: image_histogram_equalization(image=sequences[key]) for key in sequences}
 
         if self.normalization:
-            log.info("Images normalization")
+            # log.info("Images normalization")
             sequences = {key: scaler(
                 image=sequences[key]
             ) for key in sequences}
