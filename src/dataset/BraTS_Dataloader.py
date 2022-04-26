@@ -1,4 +1,3 @@
-import logging as log
 from pathlib import Path
 from random import random
 from typing import List

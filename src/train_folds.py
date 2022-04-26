@@ -1,6 +1,6 @@
 import sys
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+# os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import argparse
 import json
@@ -15,7 +15,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau  # CosineAnnealingLR
 from torch.utils.data import DataLoader
-# torch.cuda.set_device('cuda:1')
+torch.cuda.set_device('cuda:1')
 
 from src.dataset.BraTS_dataset_folds_oversampled import folded_dataset_loading
 from src.loss import EDiceLoss
@@ -91,7 +91,7 @@ def load_parameters(filepath=None):
 def main(args):
 
     # This process can not be carry out without a GPU
-    device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     num_gpus = torch.cuda.device_count()
     if num_gpus == 0:
         # raise RuntimeWarning("This process can not be carry out without a GPU")
