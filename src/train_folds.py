@@ -10,7 +10,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Tuple
 import numpy as np
-import pandas as pd
 
 import torch
 from torch.cuda.amp import autocast, GradScaler
@@ -22,9 +21,9 @@ from src.dataset.BraTS_dataset_folds_oversampled import folded_dataset_loading
 from src.loss import EDiceLoss
 from src.utils.metrics import save_metrics
 from src.utils.miscellany import AverageMeter, ProgressMeter
-from src.utils.miscellany import init_log, save_args, seed_everything, generate_segmentations
+from src.utils.miscellany import init_log, save_args, seed_everything
 from src.utils.models import create_model
-from src.utils.models import save_checkpoint, load_checkpoint, optimizer_loading, loss_function_loading
+from src.utils.models import save_checkpoint, optimizer_loading, loss_function_loading
 
 
 def load_parameters(filepath=None):
@@ -167,7 +166,6 @@ def main(args):
         # Initializing scheduler
         scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-6, verbose=True)
 
-
         # Start training phase
         patience = 0
         best = np.inf
@@ -201,14 +199,14 @@ def main(args):
             logging.info(f"\n······························ Train Epoch {epoch} ····································\n")
 
             if (epoch + 1) % args.val == 0:
-                logging.info(f"\n······························ Val Epoch {epoch} ····································\n")
+                logging.info(f"\n····························· Val Epoch {epoch} ···································\n")
                 ts = time.perf_counter()
                 model.eval()
                 mode = "val"
                 with torch.no_grad():
                     validation_loss = step(val_loader, model, mode, criterion, metric, optimizer, epoch,
-                                           args.regions, save_folder=args.save_folder,
-                                           patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool)
+                                           args.regions, save_folder=args.save_folder, patients_perf=patients_perf,
+                                           device=device, auto_cast_bool=args.auto_cast_bool)
                     with open(f"{args.save_folder}/Progress/progressVal.txt", mode="a") as f:
                         print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_val': validation_loss},
                               file=f)
@@ -235,7 +233,7 @@ def main(args):
                 te = time.perf_counter()
                 logging.info(f"Val epoch done in {te - ts:.2f} seconds")
                 logging.info(f"Validation loss: {validation_loss:.4f}")
-                logging.info(f"\n······························ Val Epoch {epoch} ····································\n")
+                logging.info(f"\n····························· Val Epoch {epoch} ···································\n")
 
             # Early stopping
             if patience >= args.max_patience:

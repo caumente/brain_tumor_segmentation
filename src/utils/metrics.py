@@ -84,8 +84,8 @@ def calculate_metrics(
 def save_metrics(
         metrics: List[torch.Tensor],
         current_epoch: int,
-        loss : float,
-        regions: List[str],
+        loss: float,
+        regions: Tuple[str],
         save_folder: Path = None
 ):
     """
@@ -110,11 +110,10 @@ def save_metrics(
     metrics = [torch.tensor(metric, device="cpu").numpy() for metric in metrics]
     metrics = {key: value for key, value in zip(regions, metrics)}
     logging.info(f"\nEpoch {current_epoch} -> "
-          f"Val: {[f'{key.upper()} : {np.nanmean(value):.4f}' for key, value in metrics.items()]} -> "
-          f"Average: {np.mean([np.nanmean(value) for key, value in metrics.items()]):.4f} "
-          f"\t Loss Average: {loss:.4f} "
-          )
-
+                 f"Val: {[f'{key.upper()} : {np.nanmean(value):.4f}' for key, value in metrics.items()]} -> "
+                 f"Average: {np.mean([np.nanmean(value) for key, value in metrics.items()]):.4f} "
+                 f"\t Loss Average: {loss:.4f} "
+                 )
 
     # Saving progress in a file
     with open(f"{save_folder}/validation_error.txt", mode="a") as f:
