@@ -17,7 +17,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau  # CosineAnnealingLR
 from torch.utils.data import DataLoader
 torch.cuda.set_device('cuda:1')
 
-from src.dataset.BraTS_dataset_folds_oversampled import folded_dataset_loading
+from src.dataset.BraTS_dataset_folds_oversampled_lgg import folded_dataset_loading
 from src.loss import EDiceLoss
 from src.utils.metrics import save_metrics
 from src.utils.miscellany import AverageMeter, ProgressMeter
