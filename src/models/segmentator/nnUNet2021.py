@@ -2,8 +2,6 @@ import torch
 from torch import nn
 from src.models.layers import conv1x1
 from src.models.layers import LevelBlock
-from src.models.layers import ConvInNormLeReLU
-from torchsummary import summary
 
 
 class nnUNet2021(nn.Module):
