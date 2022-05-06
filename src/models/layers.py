@@ -14,6 +14,7 @@ def conv3x3(in_channels, out_channels, stride=1, groups=1, dilation=1, bias=Fals
     return nn.Conv3d(in_channels, out_channels, kernel_size=(3, 3, 3), stride=stride,
                      padding=dilation, groups=groups, bias=bias, dilation=dilation)
 
+
 def conv_single(in_channels, out_channels=1, stride=1, groups=1, dilation=1, bias=False):
     """ 3D convolution which uses a kernel size of 3"""
 
@@ -109,9 +110,6 @@ class UBlock(nn.Sequential):
         )
 
 
-
-
-
 class AttentionGate(nn.Sequential):
     """
     This class stacks a 3D Convolution, Batch Normalization and ReLU layers.
@@ -133,8 +131,6 @@ class AttentionGate(nn.Sequential):
                 ]
             )
         )
-
-
 
 
 class LevelBlock2x2(nn.Sequential):
@@ -160,4 +156,29 @@ class LevelBlock2x2(nn.Sequential):
                     ('InNorm2', nn.InstanceNorm3d(out_channels)),
                     ('LeakyReLU2', nn.LeakyReLU())
                 ])
+        )
+
+
+class FullyConnectedClassifier(nn.Sequential):
+    """
+    This class stacks a 3D Convolution, Instance Normalization and Leaky ReLU layers.
+
+    Params
+    ******
+        - classes: Number of classes
+
+    """
+
+    def __init__(self, width, middle_num_neurons=1280, classes=2):
+        super(FullyConnectedClassifier, self).__init__(
+            OrderedDict(
+                [
+                    ('layer1', nn.Linear(in_features=4*width*20*28*20, out_features=middle_num_neurons)),
+                    ('dropout', nn.Dropout(.2)),
+                    ('ReLU1', nn.ReLU()),
+                    ('layer2', nn.Linear(in_features=middle_num_neurons, out_features=128)),
+                    ('ReLU2', nn.ReLU()),
+                    ('layer3', nn.Linear(in_features=128, out_features=1))
+                ]
+            )
         )
