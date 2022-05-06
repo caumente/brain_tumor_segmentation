@@ -4,6 +4,7 @@ from typing import List
 from typing import Tuple
 
 import numpy as np
+import torch
 from monai import transforms
 from skimage import util
 from torch import from_numpy
@@ -53,7 +54,8 @@ class Brats(Dataset):
             inverse_seq: bool = False,
             debug_mode: bool = False,
             auto_cast_bool: bool = False,
-            data_augmentation: bool = False
+            data_augmentation: bool = False,
+            name_grade: dict = None
     ):
         super(Brats, self).__init__()
 
@@ -75,6 +77,7 @@ class Brats(Dataset):
         self.debug_mode = debug_mode
         self.auto_cast_bool = auto_cast_bool
         self.data_augmentation = data_augmentation
+        self.name_grade = name_grade
         self.data = []
 
         for patient_path in patients_path:
@@ -87,6 +90,10 @@ class Brats(Dataset):
             if not self.has_ground_truth:
                 patient_info['seg'] = None
 
+            if self.auto_cast_bool:
+                patient_info["grade"] = torch.tensor(self.name_grade.get(patient_id), dtype=torch.half)
+            else:
+                patient_info["grade"] = torch.tensor(self.name_grade.get(patient_id), dtype=torch.float32)
             self.data.append(patient_info)
 
     def __len__(self):
@@ -102,7 +109,7 @@ class Brats(Dataset):
 
         # Load sequences and ground truth if it exists
         patient_info = self.data[idx]
-        sequences = {key: load_nii(patient_info[key]) for key in patient_info if key not in ["id", "seg"]}
+        sequences = {key: load_nii(patient_info[key]) for key in patient_info if key not in ["id", "seg", "grade"]}
         if self.has_ground_truth:
             ground_truth = load_nii(patient_info["seg"])
 
@@ -190,6 +197,7 @@ class Brats(Dataset):
             patient_id=patient_info["id"],
             sequences=sequences,
             ground_truth=ground_truth,
+            grade=patient_info["grade"],
             seg_path=str(patient_info["seg"]) if self.has_ground_truth else str(""),
             cropped_indexes=cropped_indexes,
             random_indexes=random_indexes,

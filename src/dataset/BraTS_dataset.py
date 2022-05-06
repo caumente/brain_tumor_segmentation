@@ -34,6 +34,12 @@ def get_datasets(
     patients_dir = sorted([x for x in path_images.iterdir() if x.is_dir()])
     log.info(f"Images are contained in the following path: {path_images}")
 
+    # Mapping
+    mapping = pd.read_csv("./../datasets/BRATS2020/TrainingData/name_mapping.csv")
+    mapping = mapping[['BraTS_2020_subject_ID', 'Grade']]
+    mapping.replace({"Grade": {"HGG": 1, "LGG": 0}}, inplace=True)
+    name_grade = dict(zip(mapping.BraTS_2020_subject_ID, mapping.Grade))
+
     # Splitting the path into train_path, val_path and test_path
     if "BRATS2021" in str(path_images):
         mapping = pd.DataFrame(patients_dir, columns=["patients"])
@@ -66,7 +72,8 @@ def get_datasets(
                           inverse_seq=inverse_seq,
                           debug_mode=debug_mode,
                           auto_cast_bool=auto_cast_bool,
-                          data_augmentation=True)
+                          data_augmentation=True,
+                          name_grade=name_grade)
     val_dataset = Brats(patients_path=val_path,
                         sequences=sequences,
                         has_ground_truth=has_ground_truth,
@@ -80,7 +87,8 @@ def get_datasets(
                         histogram_equalization=histogram_equalization,
                         inverse_seq=inverse_seq,
                         debug_mode=debug_mode,
-                        auto_cast_bool=auto_cast_bool)
+                        auto_cast_bool=auto_cast_bool,
+                        name_grade=name_grade)
     test_dataset = Brats(patients_path=test_path,
                          sequences=sequences,
                          has_ground_truth=has_ground_truth,
@@ -94,7 +102,8 @@ def get_datasets(
                          histogram_equalization=histogram_equalization,
                          inverse_seq=inverse_seq,
                          debug_mode=debug_mode,
-                         auto_cast_bool=auto_cast_bool)
+                         auto_cast_bool=auto_cast_bool,
+                         name_grade=name_grade)
 
     log.info(f"Size of train dataset: {len(train_dataset)}")
     log.info(f"Shape of images used for training: {train_dataset[0]['sequences'].shape}")
