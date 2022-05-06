@@ -9,7 +9,7 @@ import os
 import logging
 from pathlib import Path
 from src.utils.models import load_checkpoint
-from src.utils.models import create_model
+from src.utils.models import init_model_segmentation
 from src.utils.miscellany import generate_segmentations
 from src.utils.miscellany import seed_everything
 import torch
@@ -25,7 +25,7 @@ with open(f"{experiment_name}/config_file.json", "r") as read_file:
     args = json.load(read_file)
     args = Namespace(**args)
 
-args.postprocessing_threshold = 4
+args.postprocessing_threshold = 500
 args.pathdata = "./../datasets/BRATS2020/ValidationData/"
 args.save_folder = Path(f"{experiment_name}/Inference_{experiment_name.split('/')[-1]}")
 print(args.pathdata)
@@ -52,7 +52,8 @@ num_gpus = torch.cuda.device_count()
 # Implementing the model, turning it from cpu to gpu, and loading parameters
 if args.inverse_seq:
     args.sequences = 2*args.sequences
-model = create_model(architecture=args.architecture, sequences=args.sequences, regions=args.regions, width=args.width, deep_supervision=args.deep_supervision)
+model = init_model_segmentation(architecture=args.architecture, sequences=args.sequences, regions=args.regions,
+                                width=args.width, deep_supervision=args.deep_supervision)
 load_checkpoint(f'{str(experiment_name)}/model_best.pth.tar', model)
 
 

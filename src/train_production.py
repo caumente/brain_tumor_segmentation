@@ -13,13 +13,12 @@ import numpy as np
 import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-#torch.cuda.set_device('cuda:1')
+torch.cuda.set_device('cuda:1')
 
-from src.dataset.BraTS_Dataloader import dataset_loading
-from src.loss import EDiceLoss
+from src.dataset.BraTS_dataset import dataset_loading
 from src.utils.miscellany import AverageMeter, ProgressMeter
 from src.utils.miscellany import init_log, save_args, seed_everything
-from src.utils.models import create_model
+from src.utils.models import init_model_segmentation
 from src.utils.models import save_checkpoint, optimizer_loading, loss_function_loading
 
 
@@ -70,13 +69,13 @@ def main(args):
         args.sequences = 2 * args.sequences
 
     # Implementing the model and turning it from cpu to gpu
-    model = create_model(architecture=args.architecture, sequences=args.sequences, regions=args.regions,
-                         width=args.width, save_folder=args.save_folder, deep_supervision=args.deep_supervision)
+    model = init_model_segmentation(architecture=args.architecture, sequences=args.sequences, regions=args.regions,
+                                    width=args.width, save_folder=args.save_folder,
+                                    deep_supervision=args.deep_supervision)
     model = model.to(device)
 
     # Implementing loss function and metric
     criterion = loss_function_loading(loss_function=args.loss).to(device)
-
 
     # Loading datasets train-val-test and data augmenter
     args.production_training = True
@@ -110,7 +109,7 @@ def main(args):
 
         # Training phase
         model.train()
-        training_loss = step(train_loader, model, criterion, optimizer, epoch,scaler, patients_perf=patients_perf,
+        training_loss = step(train_loader, model, criterion, optimizer, epoch, scaler, patients_perf=patients_perf,
                              device=device, auto_cast_bool=args.auto_cast_bool)
         with open(f"{args.save_folder}/Progress/progressTrain.txt", mode="a") as f:
             print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_train': training_loss}, file=f)
@@ -118,7 +117,6 @@ def main(args):
         te = time.perf_counter()
         logging.info(f"\nTrain Epoch done in {te - ts:.2f} seconds\n")
         logging.info(f"Training loss: {training_loss}")
-
 
         # Saving the model based on the train loss
         if training_loss < best:
@@ -135,15 +133,12 @@ def main(args):
                 ),
                 checkpoint_path=args.save_folder)
 
-
         scheduler.step(training_loss)
 
         # Early stopping
         if patience > 10:
             logging.info("\n Early Stopping now! The model hasn't improved in last 10 updates.\n")
             break
-
-
 
     # Ending process
     end_time = time.perf_counter()
@@ -153,14 +148,14 @@ def main(args):
 def step(
         data_loader: torch.utils.data.Dataset,
         model: torch.nn.Module,
-        criterion: EDiceLoss,
+        criterion: torch.nn.Module,
         optimizer,
         epoch: int,
         scaler=None,
         scheduler=None,
         patients_perf=None,
-        device='cpu',
-        auto_cast_bool = False
+        device=torch.device('cpu'),
+        auto_cast_bool=False
 ):
 
     #  <------------ SETUP --------------->
@@ -176,10 +171,10 @@ def step(
     end = time.perf_counter()
     #  <------------ SETUP --------------->
 
-
     for i, batch in enumerate(data_loader):
         data_time.update(time.perf_counter() - end)
-        patient_id, inputs, ground_truth = batch["patient_id"], batch["sequences"].to(device), batch["ground_truth"].to(device)
+        patient_id = batch["patient_id"]
+        inputs, ground_truth = batch["sequences"].to(device), batch["ground_truth"].to(device)
 
         #  <------------ FORWARD PASS --------------->
         with autocast(enabled=auto_cast_bool):
@@ -216,11 +211,8 @@ def step(
     return losses.avg
 
 
-
-
-
 if __name__ == '__main__':
     arguments = load_parameters("arguments_experiment.txt")
     seed_everything(seed=arguments.seed)
-    #os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     main(arguments)

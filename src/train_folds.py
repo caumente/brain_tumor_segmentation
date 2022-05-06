@@ -22,7 +22,7 @@ from src.loss import EDiceLoss
 from src.utils.metrics import save_metrics
 from src.utils.miscellany import AverageMeter, ProgressMeter
 from src.utils.miscellany import init_log, save_args, seed_everything
-from src.utils.models import create_model
+from src.utils.models import init_model_segmentation
 from src.utils.models import save_checkpoint, optimizer_loading, loss_function_loading
 
 
@@ -140,8 +140,9 @@ def main(args):
         save_args(args)  # store config as .yaml file
 
         # Implementing the model and turning it from cpu to gpu
-        model = create_model(architecture=args.architecture, sequences=args.sequences, regions=args.regions,
-                             width=args.width, save_folder=args.save_folder, deep_supervision=args.deep_supervision)
+        model = init_model_segmentation(architecture=args.architecture, sequences=args.sequences, regions=args.regions,
+                                        width=args.width, save_folder=args.save_folder,
+                                        deep_supervision=args.deep_supervision)
         model = model.to(device)
 
         # Implementing loss function and metric
