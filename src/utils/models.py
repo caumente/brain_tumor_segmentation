@@ -5,24 +5,25 @@ import torch
 import logging
 from pathlib import Path
 from typing import List, Tuple
-from src.models.DeepUNet import DeepUNet
-from src.models.ResidualUNet import resunet_3d
-from src.models.ShallowUNet import ShallowUNet
-from src.models.MultiInputSkippedShallowUNet import MultiInputSkippedShallowUNet
-from src.models.Unet3D import UNet3D
-from src.models.VNet import VNet
-from src.models.UltraDeepUNet import UltraDeepUNet
-from src.models.ResidualShallowUNet import ResidualShallowUNet
-from src.models.AttentionShallowUNet import AttentionShallowUNet
+from src.models.segmentator.DeepUNet import DeepUNet
+from src.models.segmentator.ResidualUNet import resunet_3d
+from src.models.segmentator.ShallowUNet import ShallowUNet
+from src.models.segmentator.MultiInputSkippedShallowUNet import MultiInputSkippedShallowUNet
+from src.models.segmentator.Unet3D import UNet3D
+from src.models.segmentator.VNet import VNet
+from src.models.segmentator.UltraDeepUNet import UltraDeepUNet
+from src.models.segmentator.ResidualShallowUNet import ResidualShallowUNet
+from src.models.segmentator.AttentionShallowUNet import AttentionShallowUNet
+from src.models.classifiers.ShallowUNetClassifier import ShallowUNetClassifier
 from ranger import Ranger
 from ranger21 import Ranger21
 from monai.losses import DiceLoss, DiceFocalLoss, GeneralizedDiceLoss, DiceCELoss
 from src.loss.RegionBasedDice import RegionBasedDiceLoss
 from monai.networks.nets import UNETR
-from src.models.nnUNet2021 import nnUNet2021
+from src.models.segmentator.nnUNet2021 import nnUNet2021
 
 
-def create_model(
+def init_model_segmentation(
         architecture: str,
         sequences: List[str],
         regions: Tuple[str],
@@ -53,13 +54,16 @@ def create_model(
     elif architecture == 'ResidualUNet':
         model = resunet_3d(sequences=len(sequences), regions=len(regions), witdh=width)
     elif architecture == 'ShallowUNet':
-        model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
+        model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
+                            deep_supervision=deep_supervision)
     elif architecture == 'MultiShallowUNet':
-        model = MultiInputSkippedShallowUNet(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
+        model = MultiInputSkippedShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
+                                             deep_supervision=deep_supervision)
     elif architecture == 'DeepUNet':
         model = DeepUNet(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
     elif architecture == 'UltraDeepUNet':
-        model = UltraDeepUNet(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
+        model = UltraDeepUNet(sequences=len(sequences), regions=len(regions), width=width,
+                              deep_supervision=deep_supervision)
     elif architecture == 'AttentionShallowUNet':
         model = AttentionShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
     elif architecture == 'ResidualShallowUNet':
@@ -68,6 +72,50 @@ def create_model(
         model = UNETR(in_channels=len(sequences), out_channels=len(regions), img_size=[160, 224, 160])
     elif architecture == 'nnUNet2021':
         model = nnUNet2021(sequences=len(sequences), regions=len(regions))
+    else:
+        model = torch.nn.Module()
+        assert "The model selected does not exist. " \
+               "Please, chose some of the following architectures: 3DUNet, VNet, ResidualUNet, ShallowUNet, DeepUNet"
+
+    # Saving the model scheme in a .txt file
+    if save_folder is not None:
+        model_file = save_folder / "model.txt"
+        with model_file.open("w") as f:
+            print(model, file=f)
+
+    logging.info(model)
+    logging.info(f"Total number of trainable parameters: {count_parameters(model)}")
+
+    return model
+
+
+def init_model_classification(
+        architecture: str,
+        sequences: List[str],
+        classes: int,
+        dense_neurons: int = 1280,
+        width: int = 48,
+        save_folder: Path = None
+) -> torch.nn.Module:
+    """
+    This function implement the architecture chosen.
+
+    Params:
+    *******
+        - architecture: architecture chosen
+
+    Return:
+    *******
+        - et_present: it is true if the segmentation possess the ET region
+        - img_segmentation: stack of images of the regions
+    """
+
+    logging.info(f"Creating {architecture} model")
+    logging.info(f"Sequences for feeding the network: {len(sequences)} ({sequences})")
+
+    if architecture == 'ShallowUNetClassifier':
+        model = ShallowUNetClassifier(sequences=len(sequences), classes=classes, width=width,
+                                      dense_neurons=dense_neurons)
     else:
         model = torch.nn.Module()
         assert "The model selected does not exist. " \
@@ -144,8 +192,6 @@ def get_lr(optimizer):
         return param_group['lr']
 
 
-
-
 def optimizer_loading(
         model: torch.nn.Module,
         optimizer: str,
@@ -171,11 +217,11 @@ def optimizer_loading(
     return optimizer
 
 
-
 def loss_function_loading(loss_function: str = "dice") -> torch.nn.Module:
 
     if loss_function == 'dice':
-        loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, smooth_dr=1, smooth_nr=1, squared_pred=True)
+        loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, smooth_dr=1, smooth_nr=1,
+                                           squared_pred=True)
     elif loss_function == "dice_focal":
         loss_function_criterion = DiceFocalLoss(include_background=True, sigmoid=True, squared_pred=True)
     elif loss_function == "generalized_dice":
@@ -183,7 +229,8 @@ def loss_function_loading(loss_function: str = "dice") -> torch.nn.Module:
     elif loss_function == "dice_crossentropy":
         loss_function_criterion = DiceCELoss(include_background=True, sigmoid=True, squared_pred=True)
     elif loss_function == "region_based_dice":
-        loss_function_criterion = RegionBasedDiceLoss(weight_region=[2, 0.7, 0.3], include_background=True, sigmoid=True)
+        loss_function_criterion = RegionBasedDiceLoss(weight_region=[2, 0.7, 0.3], include_background=True,
+                                                      sigmoid=True)
     else:
         print("Select a loss function allowed: ['dice', 'dice_focal', 'generalized_dice', 'dice_crossentropy', "
               "'region_based_dice']")
