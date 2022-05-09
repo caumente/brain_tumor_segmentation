@@ -60,7 +60,7 @@ class ShallowUNetClassifier(nn.Module):
 
         # FCN
         x = self.classifier(x)
-        x = torch.sigmoid(x)
+        # x = torch.sigmoid(x)
 
         return x
 

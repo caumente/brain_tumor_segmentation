@@ -18,7 +18,7 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau  # CosineAnnealingLR
 from torch.utils.data import DataLoader
 import torch.nn as nn
-# torch.cuda.set_device('cuda:1')
+torch.cuda.set_device('cuda:1')
 
 from src.dataset.BraTS_dataset import dataset_loading
 from src.utils.metrics import save_metrics
@@ -137,7 +137,7 @@ def main(args):
     # model = model.to(device) if num_gpus == 1 else torch.nn.DataParallel(model).to(device)
 
     # Implementing loss function and metric
-    criterion = nn.BCELoss().to(device)
+    criterion = nn.BCEWithLogitsLoss().to(device)
 
     # Loading datasets train-val-test and data augmenter
     train_loader, val_loader, test_loader = dataset_loading(args)
@@ -297,6 +297,8 @@ def step(
 
             # output = torch.round(model(inputs), decimals=0)
             output = model(inputs)
+            print(output, output.type(), type(output))
+            print(ground_truth.unsqueeze(1), ground_truth.unsqueeze(1).type(), type(ground_truth.unsqueeze(1)))
             loss = criterion(output, ground_truth.unsqueeze(1))
             patients_perf.append(dict(id=patient_id[0], epoch=epoch, split=mode, loss=loss.item()))
 
