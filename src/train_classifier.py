@@ -297,8 +297,8 @@ def step(
 
             # output = torch.round(model(inputs), decimals=0)
             output = model(inputs)
-            print(output, output.type(), type(output))
-            print(ground_truth.unsqueeze(1), ground_truth.unsqueeze(1).type(), type(ground_truth.unsqueeze(1)))
+            # print(output, output.type(), type(output))
+            # print(ground_truth.unsqueeze(1), ground_truth.unsqueeze(1).type(), type(ground_truth.unsqueeze(1)))
             loss = criterion(output, ground_truth.unsqueeze(1))
             patients_perf.append(dict(id=patient_id[0], epoch=epoch, split=mode, loss=loss.item()))
 
