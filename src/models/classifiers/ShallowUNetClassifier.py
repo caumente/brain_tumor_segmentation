@@ -54,7 +54,7 @@ class ShallowUNetClassifier(nn.Module):
         x = self.downsample(x)
         x = self.encoder4(x)
         x = self.downsample(x)
-        x = self.encoder4(x)
+        x = self.encoder5(x)
 
         # Bottleneck phase
         # x = self.bottleneck(x_)
