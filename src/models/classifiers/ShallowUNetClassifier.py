@@ -15,17 +15,18 @@ class ShallowUNetClassifier(nn.Module):
     def __init__(self, sequences, classes, width, dense_neurons):
         super(ShallowUNetClassifier, self).__init__()
 
-        widths = [width * 2 ** i for i in range(4)]
+        widths = [width * 2 ** i for i in range(5)]
 
         # Encoders
         self.encoder1 = LevelBlock(sequences, widths[0] // 2, widths[0])
         self.encoder2 = LevelBlock(widths[0], widths[1] // 2, widths[1])
         self.encoder3 = LevelBlock(widths[1], widths[2] // 2, widths[2])
         self.encoder4 = LevelBlock(widths[2], widths[3] // 2, widths[3])
+        self.encoder5 = LevelBlock(widths[3], widths[4] // 2, widths[4])
 
         # Bottleneck
-        self.bottleneck = LevelBlock(widths[3], widths[3], widths[3])
-        self.bottleneck2 = ConvInNormLeReLU(widths[3] * 2, widths[2])
+        # self.bottleneck = LevelBlock(widths[4], widths[4], widths[4])
+        # self.bottleneck2 = ConvInNormLeReLU(widths[3] * 2, widths[2])
 
         # Upsample, downsample and output steps
         self.downsample = nn.MaxPool3d(2, 2)
@@ -51,11 +52,13 @@ class ShallowUNetClassifier(nn.Module):
         x = self.downsample(x)
         x = self.encoder3(x)
         x = self.downsample(x)
-        x_ = self.encoder4(x)
+        x = self.encoder4(x)
+        x = self.downsample(x)
+        x = self.encoder4(x)
 
         # Bottleneck phase
-        x = self.bottleneck(x_)
-        x = self.bottleneck2(torch.cat([x_, x], dim=1))
+        # x = self.bottleneck(x_)
+        # x = self.bottleneck2(torch.cat([x_, x], dim=1))
         x = torch.flatten(x, 1)
 
         # FCN
