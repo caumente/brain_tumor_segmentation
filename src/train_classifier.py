@@ -296,8 +296,6 @@ def step(
 
             # output = torch.round(model(inputs), decimals=0)
             output = model(inputs)
-            # print(output, output.type(), type(output))
-            # print(ground_truth.unsqueeze(1), ground_truth.unsqueeze(1).type(), type(ground_truth.unsqueeze(1)))
             loss = criterion(output, ground_truth.unsqueeze(1))
             patients_perf.append(dict(id=patient_id[0], epoch=epoch, split=mode, loss=loss.item()))
 
@@ -310,9 +308,9 @@ def step(
             if mode == "val":
                 # logging.info(f"PREDICTION: {output}\t GT: {ground_truth}")
                 gts.append(ground_truth[0].int().cpu().numpy())
-                outs.append(output[0][0].int().cpu().numpy())
+                outs.append(torch.sigmoid(output)[0][0].int().cpu().numpy())
                 logging.info(f"Ground truth: {ground_truth[0].int().cpu().numpy()}"
-                             f"\t Output: {output[0][0].int().cpu().numpy()}")
+                             f"\t Output: {torch.sigmoid(output)[0][0].int().cpu().numpy()}")
 
         #  <------------ FORWARD PASS --------------->
 
