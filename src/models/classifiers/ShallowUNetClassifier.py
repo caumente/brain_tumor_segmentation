@@ -71,7 +71,7 @@ class ShallowUNetClassifier(nn.Module):
 def test():
     seq_input = torch.rand(1, 4, 160, 224, 160)
 
-    model = ShallowUNetClassifier(sequences=4, classes=2, width=24, dense_neurons=1280)
+    model = ShallowUNetClassifier(sequences=4, classes=2, width=6, dense_neurons=128)
     preds = model(seq_input)
     print(preds.shape)
 
