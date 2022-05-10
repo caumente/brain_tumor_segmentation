@@ -12,7 +12,6 @@ import numpy as np
 import pandas as pd
 
 import torch
-from torchmetrics.classification import Accuracy
 from sklearn.metrics import accuracy_score
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau  # CosineAnnealingLR
@@ -312,9 +311,8 @@ def step(
                 # logging.info(f"PREDICTION: {output}\t GT: {ground_truth}")
                 gts.append(ground_truth[0].int().cpu().numpy())
                 outs.append(output[0][0].int().cpu().numpy())
-                print(f"Accuracy: {accuracy_score(gts, outs)}")
-                print(f"Loss Averaged: {losses.avg}")
-
+                logging.info(f"Ground truth: {ground_truth[0].int().cpu().numpy()}"
+                             f"\t Output: {output[0][0].int().cpu().numpy()}")
 
         #  <------------ FORWARD PASS --------------->
 
@@ -336,8 +334,8 @@ def step(
     if mode == "val":
         # save_metrics(metrics=metrics, current_epoch=epoch, loss=losses.avg, regions="", save_folder=save_folder)
 
-        print(f"Accuracy: {accuracy_score(gts, outs)}")
-        print(f"Loss Averaged: {losses.avg}")
+        logging.info(f"Accuracy: {accuracy_score(gts, outs)}")
+        logging.info(f"Loss Averaged: {losses.avg}")
 
     return losses.avg
 
