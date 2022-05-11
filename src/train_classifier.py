@@ -17,7 +17,7 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau  # CosineAnnealingLR
 from torch.utils.data import DataLoader
 import torch.nn as nn
-# torch.cuda.set_device('cuda:1')
+torch.cuda.set_device('cuda:1')
 
 from src.dataset.BraTS_dataset import dataset_loading
 from src.utils.metrics import save_metrics
