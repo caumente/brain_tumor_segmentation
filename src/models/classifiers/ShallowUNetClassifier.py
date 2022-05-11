@@ -62,12 +62,7 @@ class ShallowUNetClassifier(nn.Module):
         x = self.encoder5(x)
         x = self.downsample(x)
 
-        # Bottleneck phase
-        # x = self.bottleneck(x_)
-        # x = self.bottleneck2(torch.cat([x_, x], dim=1))
-
         x = torch.flatten(x, 1)
-
 
         # FCN
         x = self.classifier(x)

@@ -9,12 +9,14 @@ import numpy as np
 import pandas as pd
 from typing import Tuple
 from torch.cuda.amp import autocast
+from sklearn.metrics import accuracy_score
 from SimpleITK import GetImageFromArray, GetArrayFromImage, WriteImage, ReadImage
 from ..utils.metrics import METRICS
 from ..utils.metrics import calculate_metrics
 from ..dataset.BraTS_dataset import recover_initial_resolution
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 
 def save_args(args: argparse.Namespace):
     """
@@ -66,7 +68,7 @@ def stats_tensor(tensor: torch.Tensor, detach: bool = False, decimals: int = 6):
                  f"Std: {std:.{decimals}f}")
 
 
-def model_prediction(model: torch.nn.Module, sequences: torch.tensor, device: str='cpu') -> np.ndarray:
+def model_prediction(model: torch.nn.Module, sequences: torch.tensor, device: str = 'cpu') -> np.ndarray:
     """
     This function takes as input the sequences of a MRI and a model to generate an automatic segmentation.
 
@@ -256,6 +258,52 @@ def generate_segmentations(
     # Generating boxplot figures for each metric
     generate_boxplot_metrics(metrics_df=df_metrics_val, path=f"{args.save_folder}/metrics/")
     logging.info(f"Boxplot figures stored in the path {args.save_folder}/metrics/")
+
+
+def generate_classification(
+        data_loader: torch.utils.data.dataloader.DataLoader,
+        model: torch.nn.Module,
+        args: argparse.Namespace,
+        device="cpu"
+):
+    """
+    This function takes a model and torch DataLoader to generate a segmentation. It also store the sequences and
+    ground truth cropped, and the segmentation predicted.
+
+    Params:
+    *******
+        - data_loader (torch.utils.data.dataloader.DataLoader): torch DataLoader which contains information of
+                                                                the patient (id, sequences, gt, ..)
+        - model (torch.nn.Module): model used to compute the segmentation
+        - writer (SummaryWriter): tensorboard object in which we write some results
+        - args (dict{arg:value}): arguments for this run
+
+    Return:
+    *******
+        It does not return anything. However, it generates several images contained into args.save_folder/metrics and
+        some .csv files which store a summary of metrics got by segmentations predicted and results got for each patient
+    """
+
+    gts = []
+    outs = []
+    for _, batch in enumerate(data_loader):
+        # Getting image attributes
+        sequences = batch["sequences"]
+        ground_truth = batch["grade"][0].int().cpu().numpy()
+        patient_id = batch["patient_id"][0]
+        logging.info(f"Patient {patient_id} processed")
+
+        # Predicting label
+        output = model(sequences)
+        output = torch.sigmoid(output)[0][0].int().cpu().numpy()
+        logging.info(f"Label predicted...")
+
+        gts.append(ground_truth)
+        outs.append(output)
+
+    logging.info(f"Ground truths: {gts}")
+    logging.info(f"Labels predicted: {outs}")
+    logging.info(f"Accuracy: {accuracy_score(gts, outs)}")
 
 
 def init_log(log_name: str):

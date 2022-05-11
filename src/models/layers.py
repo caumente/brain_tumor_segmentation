@@ -175,10 +175,10 @@ class FullyConnectedClassifier(nn.Sequential):
                 [
                     ('HiddenLayer', nn.Linear(in_features=width*5*7*5, out_features=middle_num_neurons)),
                     ('ReLU1', nn.ReLU()),
-                    ('InNorm', nn.InstanceNorm1d(middle_num_neurons)),
+                    #('InNorm', nn.InstanceNorm1d(middle_num_neurons)),
                     # ('layer2', nn.Linear(in_features=middle_num_neurons, out_features=64)),
                     # ('ReLU2', nn.ReLU()),
-                    ('Dropout', nn.Dropout(.2)),
+                    #('Dropout', nn.Dropout(.2)),
                     ('Out', nn.Linear(in_features=middle_num_neurons, out_features=1))
                 ]
             )

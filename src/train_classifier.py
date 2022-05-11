@@ -17,12 +17,12 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau  # CosineAnnealingLR
 from torch.utils.data import DataLoader
 import torch.nn as nn
-torch.cuda.set_device('cuda:1')
+# torch.cuda.set_device('cuda:1')
 
 from src.dataset.BraTS_dataset import dataset_loading
 from src.utils.metrics import save_metrics
 from src.utils.miscellany import AverageMeter, ProgressMeter
-from src.utils.miscellany import init_log, save_args, seed_everything, generate_segmentations
+from src.utils.miscellany import init_log, save_args, seed_everything, generate_classification
 from src.utils.models import init_model_classification
 from src.utils.models import save_checkpoint, load_checkpoint, optimizer_loading
 
@@ -206,15 +206,15 @@ def main(args):
                 logging.info("\nBest validation loss improved")
                 patience, best = 0, validation_loss
 
-                # save_checkpoint(
-                #     dict(
-                #         epoch=epoch,
-                #         arch=args.architecture,
-                #         state_dict=model.state_dict(),
-                #         optimizer=optimizer.state_dict(),
-                #         scheduler=scheduler.state_dict(),
-                #     ),
-                #     checkpoint_path=args.save_folder)
+                save_checkpoint(
+                    dict(
+                        epoch=epoch,
+                        arch=args.architecture,
+                        state_dict=model.state_dict(),
+                        optimizer=optimizer.state_dict(),
+                        scheduler=scheduler.state_dict(),
+                    ),
+                    checkpoint_path=args.save_folder)
             else:
                 patience += 1
                 logging.info(f"\nBest validation loss did not improve for {patience} epochs")
@@ -230,15 +230,15 @@ def main(args):
             logging.info(f"\n Early Stopping now! The model hasn't improved in last {args.max_patience} updates.\n")
             break
 
-    # if args.debug_mode:
-        # save_checkpoint(
-        #     dict(
-        #         epoch=args.epochs,
-        #         arch=args.architecture,
-        #         state_dict=model.state_dict(),
-        #         optimizer=optimizer.state_dict()
-        #     ),
-        #     checkpoint_path=args.save_folder)
+    if args.debug_mode:
+        save_checkpoint(
+            dict(
+                epoch=args.epochs,
+                arch=args.architecture,
+                state_dict=model.state_dict(),
+                optimizer=optimizer.state_dict()
+            ),
+            checkpoint_path=args.save_folder)
 
     try:
         df_individual_perf = pd.DataFrame.from_records(patients_perf)
@@ -249,8 +249,8 @@ def main(args):
         logging.info("********** START VALIDATION OVER TEST DATASET ************")
         logging.info("**********************************************************\n")
 
-        # load_checkpoint(f'{str(args.save_folder)}/model_best.pth.tar', model)
-        # generate_segmentations(test_loader, model, args, device=device)
+        load_checkpoint(f'{str(args.save_folder)}/model_best.pth.tar', model)
+        generate_classification(test_loader, model, args, device=device)
     except KeyboardInterrupt:
         logging.info("Stopping right now!")
 
