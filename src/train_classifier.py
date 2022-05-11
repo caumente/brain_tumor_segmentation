@@ -130,7 +130,7 @@ def main(args):
         args.sequences = 2 * args.sequences
 
     # Implementing the model and turning it from cpu to gpu
-    model = init_model_classification(architecture=args.architecture, sequences=args.sequences, dense_neurons=1280,
+    model = init_model_classification(architecture=args.architecture, sequences=args.sequences, dense_neurons=128,
                                       classes=2, width=args.width, save_folder=args.save_folder)
     model = model.to(device)
     # model = model.to(device) if num_gpus == 1 else torch.nn.DataParallel(model).to(device)

@@ -65,9 +65,9 @@ class ShallowUNetClassifier(nn.Module):
         # Bottleneck phase
         # x = self.bottleneck(x_)
         # x = self.bottleneck2(torch.cat([x_, x], dim=1))
-        print(x.shape)
+
         x = torch.flatten(x, 1)
-        print(x.shape)
+
 
         # FCN
         x = self.classifier(x)
@@ -81,6 +81,7 @@ def test():
 
     model = ShallowUNetClassifier(sequences=4, classes=2, width=6, dense_neurons=128)
     preds = model(seq_input)
+    print(sum(p.numel() for p in model.parameters() if p.requires_grad))
     print(preds.shape)
 
 
