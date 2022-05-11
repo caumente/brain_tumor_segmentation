@@ -283,18 +283,22 @@ def generate_classification(
         It does not return anything. However, it generates several images contained into args.save_folder/metrics and
         some .csv files which store a summary of metrics got by segmentations predicted and results got for each patient
     """
+    auto_cast_bool = True
+    if device == 'cpu':
+        auto_cast_bool = False
 
     gts = []
     outs = []
     for _, batch in enumerate(data_loader):
         # Getting image attributes
-        sequences = batch["sequences"]
+        sequences = batch["sequences"].to(device)
         ground_truth = batch["grade"][0].int().cpu().numpy()
         patient_id = batch["patient_id"][0]
         logging.info(f"Patient {patient_id} processed")
 
         # Predicting label
-        output = model(sequences)
+        with autocast(enabled=auto_cast_bool):
+            output = model(sequences)
         output = torch.sigmoid(output)[0][0].int().cpu().numpy()
         logging.info(f"Label predicted...")
 
