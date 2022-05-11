@@ -173,12 +173,13 @@ class FullyConnectedClassifier(nn.Sequential):
         super(FullyConnectedClassifier, self).__init__(
             OrderedDict(
                 [
-                    ('layer1', nn.Linear(in_features=16*width*10*14*10, out_features=middle_num_neurons)),
-                    ('dropout', nn.Dropout(.2)),
+                    ('HiddenLayer', nn.Linear(in_features=width*5*7*5, out_features=middle_num_neurons)),
                     ('ReLU1', nn.ReLU()),
-                    ('layer2', nn.Linear(in_features=middle_num_neurons, out_features=64)),
-                    ('ReLU2', nn.ReLU()),
-                    ('layer3', nn.Linear(in_features=64, out_features=1))
+                    ('BatchNorm', nn.BatchNorm3d(middle_num_neurons)),
+                    # ('layer2', nn.Linear(in_features=middle_num_neurons, out_features=64)),
+                    # ('ReLU2', nn.ReLU()),
+                    ('Dropout', nn.Dropout(.2)),
+                    ('Out', nn.Linear(in_features=64, out_features=1))
                 ]
             )
         )

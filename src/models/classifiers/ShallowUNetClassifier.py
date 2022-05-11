@@ -16,13 +16,18 @@ class ShallowUNetClassifier(nn.Module):
         super(ShallowUNetClassifier, self).__init__()
 
         widths = [width * 2 ** i for i in range(5)]
-
         # Encoders
-        self.encoder1 = LevelBlock(sequences, widths[0] // 2, widths[0])
-        self.encoder2 = LevelBlock(widths[0], widths[1] // 2, widths[1])
-        self.encoder3 = LevelBlock(widths[1], widths[2] // 2, widths[2])
-        self.encoder4 = LevelBlock(widths[2], widths[3] // 2, widths[3])
-        self.encoder5 = LevelBlock(widths[3], widths[4] // 2, widths[4])
+        # self.encoder1 = LevelBlock(sequences, widths[0] // 2, widths[0])
+        # self.encoder2 = LevelBlock(widths[0], widths[1] // 2, widths[1])
+        # self.encoder3 = LevelBlock(widths[1], widths[2] // 2, widths[2])
+        # self.encoder4 = LevelBlock(widths[2], widths[3] // 2, widths[3])
+        # self.encoder5 = LevelBlock(widths[3], widths[4] // 2, widths[4])
+
+        self.encoder1 = ConvInNormLeReLU(sequences, widths[0])
+        self.encoder2 = ConvInNormLeReLU(widths[0], widths[1])
+        self.encoder3 = ConvInNormLeReLU(widths[1], widths[2])
+        self.encoder4 = ConvInNormLeReLU(widths[2], widths[3])
+        self.encoder5 = ConvInNormLeReLU(widths[3], widths[4])
 
         # Bottleneck
         # self.bottleneck = LevelBlock(widths[4], widths[4], widths[4])
@@ -32,7 +37,7 @@ class ShallowUNetClassifier(nn.Module):
         self.downsample = nn.MaxPool3d(2, 2)
 
         # FCN
-        self.classifier = FullyConnectedClassifier(width, dense_neurons, classes)
+        self.classifier = FullyConnectedClassifier(widths[-1], dense_neurons, classes)
 
         self.weights_initialization()
 
@@ -55,11 +60,14 @@ class ShallowUNetClassifier(nn.Module):
         x = self.encoder4(x)
         x = self.downsample(x)
         x = self.encoder5(x)
+        x = self.downsample(x)
 
         # Bottleneck phase
         # x = self.bottleneck(x_)
         # x = self.bottleneck2(torch.cat([x_, x], dim=1))
+        print(x.shape)
         x = torch.flatten(x, 1)
+        print(x.shape)
 
         # FCN
         x = self.classifier(x)
