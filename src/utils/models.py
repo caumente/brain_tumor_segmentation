@@ -8,6 +8,7 @@ from typing import List, Tuple
 from src.models.segmentator.DeepUNet import DeepUNet
 from src.models.segmentator.ResidualUNet import resunet_3d
 from src.models.segmentator.ShallowUNet import ShallowUNet
+from src.models.segmentator.ShallowUNetTesting import ShallowUNetTesting
 from src.models.segmentator.MultiInputSkippedShallowUNet import MultiInputSkippedShallowUNet
 from src.models.segmentator.Unet3D import UNet3D
 from src.models.segmentator.VNet import VNet
@@ -56,6 +57,9 @@ def init_model_segmentation(
     elif architecture == 'ShallowUNet':
         model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
                             deep_supervision=deep_supervision)
+    elif architecture == 'ShallowUNetTesting':
+        model = ShallowUNetTesting(sequences=len(sequences), regions=len(regions), width=width,
+                                   deep_supervision=deep_supervision)
     elif architecture == 'MultiShallowUNet':
         model = MultiInputSkippedShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
                                              deep_supervision=deep_supervision)
