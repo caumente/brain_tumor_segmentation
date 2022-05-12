@@ -6,6 +6,7 @@ from src.models.layers import ConvInNormLeReLU
 # from monai.transforms import Resize
 # from torchvision.transforms import Resize
 from torchio.transforms import Resize
+from torchio.transforms import Resample
 
 
 class ShallowUNetTesting(nn.Module):
@@ -44,9 +45,9 @@ class ShallowUNetTesting(nn.Module):
         self.downsample = nn.MaxPool3d(2, 2)
 
         # Resizer
-        self.resizer1 = Resize(target_shape=(80, 112, 80), image_interpolation="linear")
-        self.resizer2 = Resize(target_shape=(40, 56, 40), image_interpolation="linear")
-        self.resizer3 = Resize(target_shape=(20, 28, 20), image_interpolation="linear")
+        self.resizer1 = Resample(target=(2, 2, 2), image_interpolation="linear")
+        self.resizer2 = Resample(target=(4, 4, 4), image_interpolation="linear")
+        self.resizer3 = Resample(target=(8, 8, 8), image_interpolation="linear")
 
         # Output
         if self.deep_supervision:
