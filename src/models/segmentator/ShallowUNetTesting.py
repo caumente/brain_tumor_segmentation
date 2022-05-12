@@ -1,12 +1,13 @@
 import torch
 from torch import nn
+from torch.nn.functional import interpolate
 from src.models.layers import conv1x1
 from src.models.layers import LevelBlock
 from src.models.layers import ConvInNormLeReLU
 # from monai.transforms import Resize
 # from torchvision.transforms import Resize
-from torchio.transforms import Resize
-from torchio.transforms import Resample
+# from torchio.transforms import Resize
+# from torchio.transforms import Resample
 
 
 class ShallowUNetTesting(nn.Module):
@@ -44,10 +45,10 @@ class ShallowUNetTesting(nn.Module):
         self.upsample = nn.Upsample(scale_factor=2, mode="trilinear", align_corners=True)
         self.downsample = nn.MaxPool3d(2, 2)
 
-        # Resizer
-        self.resizer1 = Resample(target=(2, 2, 2), image_interpolation="linear")
-        self.resizer2 = Resample(target=(4, 4, 4), image_interpolation="linear")
-        self.resizer3 = Resample(target=(8, 8, 8), image_interpolation="linear")
+        # # Resizer
+        # self.resizer1 = Resample(target=(2, 2, 2), image_interpolation="linear")
+        # self.resizer2 = Resample(target=(4, 4, 4), image_interpolation="linear")
+        # self.resizer3 = Resample(target=(8, 8, 8), image_interpolation="linear")
 
         # Output
         if self.deep_supervision:
@@ -74,9 +75,12 @@ class ShallowUNetTesting(nn.Module):
     def forward(self, x):
 
         # Sequences resized
-        r1 = torch.unsqueeze(self.resizer1(x[0]), dim=0)
-        r2 = torch.unsqueeze(self.resizer2(x[0]), dim=0)
-        r3 = torch.unsqueeze(self.resizer3(x[0]), dim=0)
+        # r1 = torch.unsqueeze(self.resizer1(x[0]), dim=0)
+        # r2 = torch.unsqueeze(self.resizer2(x[0]), dim=0)
+        # r3 = torch.unsqueeze(self.resizer3(x[0]), dim=0)
+        r1 = interpolate(input=x, scale_factor=(.5, .5, .5), mode="trilinear")
+        r2 = interpolate(input=x, scale_factor=(.25, .25, .25), mode="trilinear")
+        r3 = interpolate(input=x, scale_factor=(.125, .125, .125), mode="trilinear")
 
         # Encoding phase
         e1 = self.encoder1(x)
