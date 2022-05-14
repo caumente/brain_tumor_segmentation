@@ -95,6 +95,9 @@ class Brats(Dataset):
                     patient_info["grade"] = torch.tensor(self.name_grade.get(patient_id), dtype=torch.half)
                 else:
                     patient_info["grade"] = torch.tensor(self.name_grade.get(patient_id), dtype=torch.float32)
+            else:
+                patient_info["grade"] = ""
+
             self.data.append(patient_info)
 
     def __len__(self):
