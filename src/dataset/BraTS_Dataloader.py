@@ -86,14 +86,15 @@ class Brats(Dataset):
             patient_info = dict(id=patient_id)
 
             for n, sequence in enumerate(self.sequences):
-                patient_info[sequence.replace("_", "")] = paths[n]
+                patient_info[sequence.replace("_",D "")] = paths[n]
             if not self.has_ground_truth:
                 patient_info['seg'] = None
 
-            if self.auto_cast_bool:
-                patient_info["grade"] = torch.tensor(self.name_grade.get(patient_id), dtype=torch.half)
-            else:
-                patient_info["grade"] = torch.tensor(self.name_grade.get(patient_id), dtype=torch.float32)
+            if self.has_ground_truth:
+                if self.auto_cast_bool:
+                    patient_info["grade"] = torch.tensor(self.name_grade.get(patient_id), dtype=torch.half)
+                else:
+                    patient_info["grade"] = torch.tensor(self.name_grade.get(patient_id), dtype=torch.float32)
             self.data.append(patient_info)
 
     def __len__(self):
