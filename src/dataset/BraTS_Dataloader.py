@@ -86,7 +86,7 @@ class Brats(Dataset):
             patient_info = dict(id=patient_id)
 
             for n, sequence in enumerate(self.sequences):
-                patient_info[sequence.replace("_",D "")] = paths[n]
+                patient_info[sequence.replace("_", "")] = paths[n]
             if not self.has_ground_truth:
                 patient_info['seg'] = None
 
