@@ -68,11 +68,11 @@ class ShallowUNetTestingDeepSupervision(nn.Module):
                 ConvInNormLeReLU(widths[3], widths[0]),
                 conv1x1(widths[0], regions)
             )
-            self.output5 = nn.Sequential(
-                nn.Upsample(scale_factor=8, mode="trilinear"),
-                ConvInNormLeReLU(widths[3], widths[0]),
-                conv1x1(widths[0], regions)
-            )
+            # self.output5 = nn.Sequential(
+            #     nn.Upsample(scale_factor=8, mode="trilinear"),
+            #     ConvInNormLeReLU(widths[3], widths[0]),
+            #     conv1x1(widths[0], regions)
+            # )
             self.output4 = nn.Sequential(
                 nn.Upsample(scale_factor=8, mode="trilinear"),
                 ConvInNormLeReLU(widths[2], widths[0]),
@@ -132,13 +132,13 @@ class ShallowUNetTestingDeepSupervision(nn.Module):
             output8 = self.output8(e2)
             output7 = self.output7(e3)
             output6 = self.output6(e4)
-            output5 = self.output5(bottleneck)
+            # output5 = self.output5(bottleneck)
             output4 = self.output4(bottleneck2)
             output3 = self.output3(d3)
             output2 = self.output2(d2)
             output1 = self.output1(d1)
 
-            return [output9, output8, output7, output6, output5, output4, output3, output2, output1]
+            return [output9, output8, output7, output6, output4, output3, output2, output1]
         else:
             output1 = self.output1(d1)
 
