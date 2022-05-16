@@ -55,6 +55,7 @@ if args.inverse_seq:
 model = init_model_segmentation(architecture=args.architecture, sequences=args.sequences, regions=args.regions,
                                 width=args.width, deep_supervision=args.deep_supervision)
 load_checkpoint(f'{str(experiment_name)}/model_best.pth.tar', model)
+model = model.to(device)
 
 
 # Loading dataset
@@ -67,25 +68,18 @@ dataset = Brats(patients_path=pathdata,
                 has_ground_truth=False,
                 regions=args.regions,
                 normalization=args.normalization,
+                clipping=args.clipping,
                 low_percentile=args.low_norm,
                 high_percentile=args.high_norm,
                 crop_or_pad=args.crop_or_pad,
                 fit_boundaries=args.fit_boundaries,
+                histogram_equalization=args.histogram_equalization,
                 inverse_seq=args.inverse_seq,
                 debug_mode=False,
-                auto_cast_bool = False)
+                auto_cast_bool=args.auto_cast_bool)
 logging.info(f"Size of dataset: {len(dataset)}")
 data_loader = DataLoader(dataset, batch_size=1)
 
 
 # Generating segmentations
-generate_segmentations(data_loader, model, args)
-
-
-
-
-
-
-
-
-
+generate_segmentations(data_loader, model, args, device=device)
