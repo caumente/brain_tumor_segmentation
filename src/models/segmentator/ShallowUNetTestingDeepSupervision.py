@@ -56,28 +56,28 @@ class ShallowUNetTestingDeepSupervision(nn.Module):
                 conv1x1(widths[0], regions)
             )
             self.output8 = nn.Sequential(
-                nn.ConvTranspose3d(widths[1], widths[1], kernel_size=2, stride=2),
-                conv1x1(widths[1], regions)
+                nn.ConvTranspose3d(widths[1], widths[0], kernel_size=2, stride=2),
+                conv1x1(widths[0], regions)
             )
             self.output7 = nn.Sequential(
-                nn.ConvTranspose3d(widths[2], widths[2], kernel_size=4, stride=4),
-                conv1x1(widths[2], regions)
+                nn.ConvTranspose3d(widths[2], widths[0], kernel_size=4, stride=4),
+                conv1x1(widths[0], regions)
             )
             self.output6 = nn.Sequential(
-                nn.ConvTranspose3d(widths[3], widths[3], kernel_size=8, stride=8),
-                conv1x1(widths[3], regions)
+                nn.ConvTranspose3d(widths[3], widths[0], kernel_size=8, stride=8),
+                conv1x1(widths[0], regions)
             )
             self.output5 = nn.Sequential(
-                nn.ConvTranspose3d(widths[3], widths[3], kernel_size=8, stride=8),
-                conv1x1(widths[3], regions)
+                nn.ConvTranspose3d(widths[3], widths[0], kernel_size=8, stride=8),
+                conv1x1(widths[0], regions)
             )
             self.output4 = nn.Sequential(
-                nn.ConvTranspose3d(widths[2], widths[2], kernel_size=8, stride=8),
-                conv1x1(widths[2], regions)
+                nn.ConvTranspose3d(widths[2], widths[0], kernel_size=8, stride=8),
+                conv1x1(widths[0], regions)
             )
             self.output3 = nn.Sequential(
-                nn.ConvTranspose3d(widths[1], widths[1], kernel_size=4, stride=4),
-                conv1x1(widths[1], regions)
+                nn.ConvTranspose3d(widths[1], widths[0], kernel_size=4, stride=4),
+                conv1x1(widths[0], regions)
             )
             self.output2 = nn.Sequential(
                 nn.ConvTranspose3d(widths[0], widths[0], kernel_size=2, stride=2),
