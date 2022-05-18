@@ -32,6 +32,12 @@ def get_folded_datasets(
     patients_dir = sorted([x for x in path_images.iterdir() if x.is_dir()])
     log.info(f"Images are contained in the following path: {path_images}")
 
+    # Mapping
+    mapping = pd.read_csv(f"{path_images}/name_mapping.csv")
+    mapping = mapping[['BraTS_2020_subject_ID', 'Grade']]
+    mapping.replace({"Grade": {"HGG": 1, "LGG": 0}}, inplace=True)
+    name_grade = dict(zip(mapping.BraTS_2020_subject_ID, mapping.Grade))
+
     # Splitting the path into train_path, val_path and test_path
     mapping = pd.read_csv(f"{path_images}/name_mapping.csv")
     folds_path, test_path = train_test_split_BraTS_2020(mapping=mapping,
@@ -57,7 +63,8 @@ def get_folded_datasets(
                                   inverse_seq=inverse_seq,
                                   debug_mode=debug_mode,
                                   auto_cast_bool=auto_cast_bool,
-                                  data_augmentation=True)
+                                  data_augmentation=True,
+                                  name_grade=name_grade)
                             )
 
     test_dataset = Brats(patients_path=test_path,
@@ -73,7 +80,8 @@ def get_folded_datasets(
                          histogram_equalization=histogram_equalization,
                          inverse_seq=inverse_seq,
                          debug_mode=debug_mode,
-                         auto_cast_bool=auto_cast_bool)
+                         auto_cast_bool=auto_cast_bool,
+                         name_grade=name_grade)
 
     log.info(f"Size of train dataset: {len(fold_dataset[0])}")
     log.info(f"Shape of images used for training: {fold_dataset[0][0]['sequences'].shape}")
