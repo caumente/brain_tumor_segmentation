@@ -212,7 +212,7 @@ class MISU(nn.Module):
             tc = torch.unsqueeze(torch.add(output1[:, 1, :, :, :], output3[:, 1, :, :, :]), dim=1)
             wt = torch.unsqueeze(torch.add(output2[:, 0, :, :, :], output3[:, 2, :, :, :]), dim=1)
 
-            concatenated_output = torch.concat([et, tc, wt], dim=1)
+            concatenated_output = torch.cat([et, tc, wt], dim=1)
 
         else:
             concatenated_output = []
@@ -221,7 +221,7 @@ class MISU(nn.Module):
                 tc = torch.unsqueeze(torch.add(o1[:, 1, :, :, :], o3[:, 1, :, :, :]), dim=1)
                 wt = torch.unsqueeze(torch.add(o2[:, 0, :, :, :], o3[:, 2, :, :, :]), dim=1)
 
-                concatenated_output.append(torch.concat([et, tc, wt], dim=1))
+                concatenated_output.append(torch.cat([et, tc, wt], dim=1))
 
         return concatenated_output
 
