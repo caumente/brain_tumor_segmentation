@@ -10,7 +10,7 @@ from src.models.layers import ConvInNormLeReLU
 # from torchio.transforms import Resample
 
 
-class ShallowUNetTesting(nn.Module):
+class MultiImageInput_ShallowUNet(nn.Module):
     """
     This class implements a variation of 3D Unet network. Main modifications are:
         - Replacement of ReLU activation layer by LeakyReLU
@@ -18,10 +18,10 @@ class ShallowUNetTesting(nn.Module):
 
     """
 
-    name = "Shallow U-Net"
+    name = "Multi-Image-Input Shallow U-Net"
 
     def __init__(self, sequences, regions, width, deep_supervision):
-        super(ShallowUNetTesting, self).__init__()
+        super(MultiImageInput_ShallowUNet, self).__init__()
 
         self.deep_supervision = deep_supervision
         widths = [width * 2 ** i for i in range(4)]
