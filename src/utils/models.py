@@ -17,11 +17,12 @@ from src.models.segmentator.UltraDeepUNet import UltraDeepUNet
 from src.models.segmentator.ResidualShallowUNet import ResidualShallowUNet
 from src.models.segmentator.AttentionShallowUNet import AttentionShallowUNet
 from src.models.classifiers.ShallowUNetClassifier import ShallowUNetClassifier
-from src.models.segmentator.MISU import MISU
+# from src.models.segmentator.MISU import MISU
 from ranger import Ranger
 from ranger21 import Ranger21
 from monai.losses import DiceLoss, DiceFocalLoss, GeneralizedDiceLoss, DiceCELoss
 from src.loss.RegionBasedDice import RegionBasedDiceLoss
+# from src.loss.TestLossFunction import TestLossFunction
 from monai.networks.nets import UNETR
 from src.models.segmentator.nnUNet2021 import nnUNet2021
 
@@ -242,6 +243,10 @@ def loss_function_loading(loss_function: str = "dice") -> torch.nn.Module:
     elif loss_function == "region_based_dice":
         loss_function_criterion = RegionBasedDiceLoss(weight_region=[2, 0.7, 0.3], include_background=True,
                                                       sigmoid=True)
+    # elif loss_function == "test_loss_function":
+    #     loss_function_criterion = TestLossFunction(include_background=True, sigmoid=True)
+    elif loss_function == "jaccard":
+        loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, jaccard=True, reduction="sum")
     else:
         print("Select a loss function allowed: ['dice', 'dice_focal', 'generalized_dice', 'dice_crossentropy', "
               "'region_based_dice']")
