@@ -22,7 +22,7 @@ from ranger import Ranger
 from ranger21 import Ranger21
 from monai.losses import DiceLoss, DiceFocalLoss, GeneralizedDiceLoss, DiceCELoss
 from src.loss.RegionBasedDice import RegionBasedDiceLoss
-# from src.loss.TestLossFunction import TestLossFunction
+from src.loss.ExperimentalDICE import ExperimentalDICE
 from monai.networks.nets import UNETR
 from src.models.segmentator.nnUNet2021 import nnUNet2021
 
@@ -66,8 +66,6 @@ def init_model_segmentation(
     elif architecture == 'ShallowUNetTestingDeepSupervision':
         model = ShallowUNetTestingDeepSupervision(sequences=len(sequences), regions=len(regions), width=width,
                                                   deep_supervision=deep_supervision)
-    elif architecture == 'MISU':
-        model = MISU(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
     elif architecture == 'MultiShallowUNet':
         model = MultiInputSkippedShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
                                              deep_supervision=deep_supervision)
@@ -211,7 +209,6 @@ def optimizer_loading(
         num_epochs: int,
         num_batches_per_epoch: int
 ) -> torch.optim:
-
     if optimizer == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, eps=1e-4)
     elif optimizer == "sgd":
@@ -222,7 +219,7 @@ def optimizer_loading(
         optimizer = Ranger(model.parameters(), lr=learning_rate)
     elif optimizer == "ranger21":
         optimizer = Ranger21(model.parameters(), lr=learning_rate, num_epochs=num_epochs,
-                             num_batches_per_epoch=num_batches_per_epoch, warmdown_min_lr=1e-6,)
+                             num_batches_per_epoch=num_batches_per_epoch, warmdown_min_lr=1e-6)
     else:
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, nesterov=True)
 
@@ -230,7 +227,6 @@ def optimizer_loading(
 
 
 def loss_function_loading(loss_function: str = "dice") -> torch.nn.Module:
-
     if loss_function == 'dice':
         loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, smooth_dr=1, smooth_nr=1,
                                            squared_pred=True)
@@ -243,8 +239,8 @@ def loss_function_loading(loss_function: str = "dice") -> torch.nn.Module:
     elif loss_function == "region_based_dice":
         loss_function_criterion = RegionBasedDiceLoss(weight_region=[2, 0.7, 0.3], include_background=True,
                                                       sigmoid=True)
-    # elif loss_function == "test_loss_function":
-    #     loss_function_criterion = TestLossFunction(include_background=True, sigmoid=True)
+    elif loss_function == "experimental_dice":
+        loss_function_criterion = ExperimentalDICE(include_background=True, sigmoid=True, reduction="sum")
     elif loss_function == "jaccard":
         loss_function_criterion = DiceLoss(include_background=True, sigmoid=True, jaccard=True, reduction="sum")
     else:
