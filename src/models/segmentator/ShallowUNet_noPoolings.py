@@ -67,9 +67,9 @@ class ShallowUNetNoPoolings(nn.Module):
         e1 = self.encoder1(x)
         p1 = interpolate(input=e1, scale_factor=(.5, .5, .5), mode="trilinear")
         e2 = self.encoder2(p1)
-        p2 = interpolate(input=e2, scale_factor=(.25, .25, .25), mode="trilinear")
+        p2 = interpolate(input=e2, scale_factor=(.5, .5, .5), mode="trilinear")
         e3 = self.encoder3(p2)
-        p3 = interpolate(input=e3, scale_factor=(.125, .125, .125), mode="trilinear")
+        p3 = interpolate(input=e3, scale_factor=(.5, .5, .5), mode="trilinear")
         e4 = self.encoder4(p3)
 
         # Bottleneck phase
