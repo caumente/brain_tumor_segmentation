@@ -183,3 +183,28 @@ class FullyConnectedClassifier(nn.Sequential):
                 ]
             )
         )
+
+
+class DoubleLevelBlock(nn.Sequential):
+    """
+    This class stacks two blocks of ConvInNormLeReLU (3D Convolution, Instance Normalization and Leaky ReLU layers).
+
+    Params
+    ******
+        - in_channels: Number of input channels
+        - mid_channels: Number of channels between the first and the second block
+        - out_channels: Number of output channels
+
+    """
+
+    def __init__(self, in_channels, mid_channels, out_channels):
+        super(DoubleLevelBlock, self).__init__(
+            OrderedDict(
+                [
+                    ('ConvInNormLRelu1', ConvInNormLeReLU(in_channels, mid_channels)),
+                    ('ConvInNormLRelu2', ConvInNormLeReLU(mid_channels, mid_channels)),
+                    ('ConvInNormLRelu3', ConvInNormLeReLU(mid_channels, mid_channels)),
+                    ('ConvInNormLRelu4', ConvInNormLeReLU(mid_channels, out_channels))
+                ])
+        )
+

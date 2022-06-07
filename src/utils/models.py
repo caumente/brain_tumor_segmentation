@@ -8,6 +8,7 @@ from typing import List, Tuple
 from src.models.segmentator.DeepUNet import DeepUNet
 from src.models.segmentator.ResidualUNet import resunet_3d
 from src.models.segmentator.ShallowUNet import ShallowUNet
+from src.models.segmentator.DoubleShallowUNet import DoubleShallowUNet
 from src.models.segmentator.ShallowUNet_noPoolings import ShallowUNetNoPoolings
 from src.models.segmentator.MultiImageInput_ShallowUNet import MultiImageInput_ShallowUNet
 from src.models.segmentator.ShallowUNetTestingDeepSupervision import ShallowUNetTestingDeepSupervision
@@ -61,6 +62,9 @@ def init_model_segmentation(
     elif architecture == 'ShallowUNet':
         model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
                             deep_supervision=deep_supervision)
+    elif architecture == 'DoubleShallowUNet':
+        model = DoubleShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
+                                  deep_supervision=deep_supervision)
     elif architecture == 'ShallowUNetNoPoolings':
         model = ShallowUNetNoPoolings(sequences=len(sequences), regions=len(regions), width=width,
                                       deep_supervision=deep_supervision)
