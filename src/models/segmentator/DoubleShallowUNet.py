@@ -30,7 +30,7 @@ class DoubleShallowUNet(nn.Module):
 
         # Bottleneck
         self.bottleneck = LevelBlock(widths[3], widths[3], widths[3])
-        self.bottleneck2 = LevelBlock(widths[3] * 2, widths[2])
+        self.bottleneck2 = LevelBlock(widths[3] * 2, widths[3], widths[2])
 
         # Decoders
         self.decoder3 = LevelBlock(widths[2] * 2, widths[2], widths[1])
