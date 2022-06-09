@@ -14,3 +14,4 @@ out, comparing our proposals to the original 3D U-Net, was the replacement of th
 Instance Normalizations layers. Moreover, the activation layers ReLU were also replaced by Leaky ReLU. Finally, 
 Shallow/Deep U-Net uses four/seven levels of depth and four/seven skip connections instead of the 3 levels and skips 
 implemented originally in the 3D U-Net.
+
