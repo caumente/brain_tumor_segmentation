@@ -29,13 +29,13 @@ class DoubleShallowUNet(nn.Module):
         self.encoder4 = DoubleLevelBlock(widths[2], widths[3] // 2, widths[3])
 
         # Bottleneck
-        self.bottleneck = LevelBlock(widths[3], widths[3], widths[3])
-        self.bottleneck2 = LevelBlock(widths[3] * 2, widths[3], widths[2])
+        self.bottleneck = DoubleLevelBlock(widths[3], widths[3], widths[3])
+        self.bottleneck2 = DoubleLevelBlock(widths[3] * 2, widths[3], widths[2])
 
         # Decoders
-        self.decoder3 = LevelBlock(widths[2] * 2, widths[2], widths[1])
-        self.decoder2 = LevelBlock(widths[1] * 2, widths[1], widths[0])
-        self.decoder1 = LevelBlock(widths[0] * 2, widths[0], widths[0] // 2)
+        self.decoder3 = DoubleLevelBlock(widths[2] * 2, widths[2], widths[1])
+        self.decoder2 = DoubleLevelBlock(widths[1] * 2, widths[1], widths[0])
+        self.decoder1 = DoubleLevelBlock(widths[0] * 2, widths[0], widths[0] // 2)
 
         # Upsample, downsample and output steps
         self.upsample = nn.Upsample(scale_factor=2, mode="trilinear", align_corners=True)
