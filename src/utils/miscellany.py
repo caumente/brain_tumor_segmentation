@@ -193,7 +193,7 @@ def generate_segmentations(
     metrics_list = []
     for _, batch in enumerate(data_loader):
         ref_path = ['./../datasets/BRATS2020/TrainingData/BraTS20_Training_001/BraTS20_Training_001_seg.nii.gz']
-        ref_path = ['./../datasets/BRATS2021/TrainingData/BraTS2021_00002/BraTS2021_00002_seg.nii.gz']
+        #ref_path = ['./../datasets/BRATS2021/TrainingData/BraTS2021_00002/BraTS2021_00002_seg.nii.gz']
         # Getting image attributes
         sequences = batch["sequences"]
         ground_truth = batch["ground_truth"][0].cpu().numpy()

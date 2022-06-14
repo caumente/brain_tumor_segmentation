@@ -11,7 +11,7 @@ from src.models.segmentator.ShallowUNet import ShallowUNet
 from src.models.segmentator.DoubleShallowUNet import DoubleShallowUNet
 from src.models.segmentator.ShallowUNet_noPoolings import ShallowUNetNoPoolings
 from src.models.segmentator.MultiImageInput_ShallowUNet import MultiImageInput_ShallowUNet
-from src.models.segmentator.ShallowUNetTestingDeepSupervision import ShallowUNetTestingDeepSupervision
+from src.models.segmentator.ShallowUNetSecondStage import ShallowUNetSecondStage
 from src.models.segmentator.MultiInputSkippedShallowUNet import MultiInputSkippedShallowUNet
 from src.models.segmentator.Unet3D import UNet3D
 from src.models.segmentator.VNet import VNet
@@ -71,9 +71,9 @@ def init_model_segmentation(
     elif architecture == 'ShallowUNetTesting':
         model = MultiImageInput_ShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
                                             deep_supervision=deep_supervision)
-    elif architecture == 'ShallowUNetTestingDeepSupervision':
-        model = ShallowUNetTestingDeepSupervision(sequences=len(sequences), regions=len(regions), width=width,
-                                                  deep_supervision=deep_supervision)
+    elif architecture == 'ShallowUNetSecondStage':
+        model = ShallowUNetSecondStage(sequences=len(sequences), regions=len(regions), width=width,
+                                       deep_supervision=deep_supervision)
     elif architecture == 'MultiShallowUNet':
         model = MultiInputSkippedShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
                                              deep_supervision=deep_supervision)
