@@ -165,7 +165,6 @@ def generate_boxplot_metrics(metrics_df: pd.DataFrame, path: str):
         plt.savefig(f"{path}{metric}.png")
 
 
-
 def generate_segmentations(
         data_loader: torch.utils.data.dataloader.DataLoader,
         model: torch.nn.Module,
@@ -204,6 +203,122 @@ def generate_segmentations(
 
         # Predicting segmentation
         segmentation = model_prediction(model=model, sequences=sequences, device=device)
+        logging.info(f"Segmentation calculated...")
+
+
+        # Evaluating ground truth and segmentation
+        patient_metric_list = calculate_metrics(ground_truth=ground_truth, segmentation=segmentation,
+                                                patient=patient_id, regions=args.regions)
+        metrics_list.append(patient_metric_list)
+        logging.info(f"Metrics stored...")
+
+        # Recovering initial resolution and transforming regions to labels
+        recovered_segmentation = recover_initial_resolution(image=segmentation, cropped_indexes=cropped_indexes, random_indexes=random_indexes)
+        recovered_segmentation = regions_to_labels(segmentation=recovered_segmentation, regions=args.regions)
+
+        # Postprocessing
+        if args.postprocessing_threshold > 0:
+            pixels_dict = count_pixels(recovered_segmentation)
+            if pixels_dict[4.0] < args.postprocessing_threshold:
+                logging.info(f"This segmentation has less than {args.postprocessing_threshold} pixels in the ET region. Dropping that label.")
+                recovered_segmentation[recovered_segmentation == 4.0] = 1.0
+
+
+        # Storing segmentation using the input resolution
+        recovered_segmentation = GetImageFromArray(np.expand_dims(recovered_segmentation, 0), isVector=False)
+        ref_image = ReadImage(ref_path)
+        recovered_segmentation.CopyInformation(ref_image) # this step is crutial to maintain the orientation
+        WriteImage(recovered_segmentation, f"{args.seg_folder}/{patient_id}.nii.gz")
+        logging.info(f"Recovering initial dimensions...")
+
+        # Storing segmentation using the resolution chosen
+        segmentation = regions_to_labels(segmentation=segmentation, regions=args.regions)
+        ground_truth = regions_to_labels(segmentation=ground_truth, regions=args.regions)
+        logging.info(f"Converted ROI segmentation and ground truth into labels...")
+
+        # Saving sequences and ground truth cropped, and segmentation predicted
+        np.save(f"{args.seg_folder}/{patient_id}_sequences", sequences.cpu().numpy()[0])
+        WriteImage(GetImageFromArray(ground_truth.astype(np.int16)), f"{args.seg_folder}/{patient_id}_ground_truth.nii.gz")
+        WriteImage(GetImageFromArray(segmentation.astype(np.int16)), f"{args.seg_folder}/{patient_id}_segmentation.nii.gz")
+        logging.info(f"Sequences, ground truth and segmentation saved successfully...")
+
+    # Generating .csv which contains all metrics
+    df_metrics_val = pd.DataFrame([item for sublist in metrics_list for item in sublist])
+    df_metrics_val.to_csv((args.save_folder / 'results_by_patient.csv'), index=False)
+
+    df_melt = pd.melt(df_metrics_val,
+                      id_vars=["patient_id", "region"],
+                      value_vars=METRICS,
+                      var_name="metric_name",
+                      value_name="value")
+    df_summary = df_melt.groupby(["region", "metric_name"]).describe().reset_index()
+    df_summary.to_csv(f"{args.save_folder}/summary_metrics.csv", index=False)
+    logging.info(f"\nMetrics summary:\n\n{df_summary}")
+
+    # Generating boxplot figures for each metric
+    generate_boxplot_metrics(metrics_df=df_metrics_val, path=f"{args.save_folder}/metrics/")
+    logging.info(f"Boxplot figures stored in the path {args.save_folder}/metrics/")
+
+
+def generate_segmentations_pretrained(
+        data_loader: torch.utils.data.dataloader.DataLoader,
+        model: torch.nn.Module,
+        args: argparse.Namespace,
+        device="cpu",
+        pretrained_model: torch.nn.Module = None
+):
+    """
+    This function takes a model and torch DataLoader to generate a segmentation. It also save the sequences and
+    ground truth cropped, and the segmentation predicted.
+
+    Params:
+    *******
+        - data_loader (torch.utils.data.dataloader.DataLoader): torch DataLoader which contains information of
+                                                                the patient (id, sequences, gt, ..)
+        - model (torch.nn.Module): model used to compute the segmentation
+        - writer (SummaryWriter): tensorboard object in which we write some results
+        - args (dict{arg:value}): arguments for this run
+
+    Return:
+    *******
+        It does not return anything. However, it generates several images contained into args.save_folder/metrics and
+        some .csv files which store a summary of metrics got by segmentations predicted and results got for each patient
+    """
+
+    metrics_list = []
+    for _, batch in enumerate(data_loader):
+        ref_path = ['./../datasets/BRATS2020/TrainingData/BraTS20_Training_001/BraTS20_Training_001_seg.nii.gz']
+        #ref_path = ['./../datasets/BRATS2021/TrainingData/BraTS2021_00002/BraTS2021_00002_seg.nii.gz']
+        # Getting image attributes
+        sequences = batch["sequences"]
+        ground_truth = batch["ground_truth"][0].cpu().numpy()
+        patient_id = batch["patient_id"][0]
+        cropped_indexes = [(item[0].item(), item[1].item()) for item in batch['cropped_indexes']]
+        random_indexes = [(item[0].item(), item[1].item()) for item in batch['random_indexes']]
+        logging.info(f"Processing patient {patient_id} ...")
+
+        # generating masks based on pretrained model
+        sequences = sequences.to(device)
+        auto_cast_bool = True
+        if device == 'cpu':
+            auto_cast_bool = False
+
+        with autocast(enabled=auto_cast_bool):
+            with torch.no_grad():
+                pred_pretrained = pretrained_model(sequences)
+                pred_pretrained = torch.sigmoid(pred_pretrained[-1]) > 0.9
+                pred_pretrained = torch.where(pred_pretrained > 0, 1.1, .5)
+                # spliting the regions
+                et_pred_pretrained = torch.unsqueeze(pred_pretrained[:, 0, :, :, :], dim=1)
+                tc_pred_pretrained = torch.unsqueeze(pred_pretrained[:, 1, :, :, :], dim=1)
+                wt_pred_pretrained = torch.unsqueeze(pred_pretrained[:, 2, :, :, :], dim=1)
+                # putting attention into the sequences
+                inputs_concatenated = torch.cat([sequences * et_pred_pretrained,
+                                                 sequences * tc_pred_pretrained,
+                                                 sequences * wt_pred_pretrained], dim=1)
+
+        # Predicting segmentation
+        segmentation = model_prediction(model=model, sequences=inputs_concatenated, device=device)
         logging.info(f"Segmentation calculated...")
 
 

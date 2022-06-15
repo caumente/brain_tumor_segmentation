@@ -208,7 +208,7 @@ class ShallowUNetSecondStage(nn.Module):
 
         if self.deep_supervision:
             output33 = self.output3_wt(d33)
-            output23 = self.output2__wt(d23)
+            output23 = self.output2_wt(d23)
             output13 = self.output1_wt(d13)
 
             output3 = [output33, output23, output13]
@@ -231,7 +231,7 @@ def test():
     seq_input = torch.rand(1, 12, 160, 224, 160)
     seq_ouput = torch.rand(1, 3, 160, 224, 160)
 
-    model = ShallowUNetSecondStage(sequences=4, regions=3, width=6, deep_supervision=False)
+    model = ShallowUNetSecondStage(sequences=4, regions=3, width=6, deep_supervision=True)
     preds = model(seq_input)
 
     print(seq_input.shape)

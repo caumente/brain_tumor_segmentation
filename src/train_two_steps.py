@@ -24,7 +24,7 @@ from src.dataset.BraTS_dataset import dataset_loading
 from src.loss import EDiceLoss
 from src.utils.metrics import save_metrics
 from src.utils.miscellany import AverageMeter, ProgressMeter
-from src.utils.miscellany import init_log, save_args, seed_everything, generate_segmentations
+from src.utils.miscellany import init_log, save_args, seed_everything, generate_segmentations, generate_segmentations_pretrained
 from src.utils.models import init_model_segmentation
 from src.utils.models import save_checkpoint, load_checkpoint, optimizer_loading, loss_function_loading
 
@@ -131,18 +131,18 @@ def main(args):
         args.sequences = 2 * args.sequences
 
     # Implementing the model and turning it from cpu to gpu
-    path_pretrained_model = "./../experiments/20220611_135844__ShallowUNet_24_batch1_ranger_lr0.001_epochs400"
-    model_pretrained = init_model_segmentation(architecture=args.architecture, sequences=args.sequences,
+    path_pretrained_model = "./../experiments/6__debug_20220615_204827__ShallowUNet_6_batch1_ranger_lr0.001_epochs400"
+    pretrained_model = init_model_segmentation(architecture=args.architecture, sequences=args.sequences,
                                                regions=args.regions, width=args.width, save_folder=args.save_folder,
                                                deep_supervision=args.deep_supervision)
-    load_checkpoint(f'{str(path_pretrained_model)}/model_best.pth.tar', model_pretrained)
-    for param in model_pretrained.parameters():
+    load_checkpoint(f'{str(path_pretrained_model)}/model_best.pth.tar', pretrained_model)
+    for param in pretrained_model.parameters():
         param.requires_grad = False
-    model_pretrained = model_pretrained.to(device)
+    pretrained_model = pretrained_model.to(device)
 
     model = init_model_segmentation(architecture='ShallowUNetSecondStage', sequences=args.sequences,
                                     regions=args.regions, width=args.width, save_folder=args.save_folder,
-                                    deep_supervision=False)
+                                    deep_supervision=True)
     model = model.to(device)
     # model = model.to(device) if num_gpus == 1 else torch.nn.DataParallel(model).to(device)
 
@@ -194,7 +194,7 @@ def main(args):
                              patients_perf=patients_perf,
                              device=device,
                              auto_cast_bool=args.auto_cast_bool,
-                             model_pretrained=model_pretrained
+                             pretrained_model=pretrained_model
                              )
         with open(f"{args.save_folder}/Progress/progressTrain.txt", mode="a") as f:
             print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_train': training_loss}, file=f)
@@ -213,7 +213,7 @@ def main(args):
                 validation_loss = step(val_loader, model, mode, criterion, metric, optimizer, epoch,
                                        args.regions, save_folder=args.save_folder,
                                        patients_perf=patients_perf, device=device, auto_cast_bool=args.auto_cast_bool,
-                                       model_pretrained=model_pretrained)
+                                       pretrained_model=pretrained_model)
                 with open(f"{args.save_folder}/Progress/progressVal.txt", mode="a") as f:
                     print({'lr': optimizer.param_groups[0]['lr'], 'epoch': epoch, 'loss_val': validation_loss},
                           file=f)
@@ -266,7 +266,7 @@ def main(args):
         logging.info("**********************************************************\n")
 
         load_checkpoint(f'{str(args.save_folder)}/model_best.pth.tar', model)
-        generate_segmentations(test_loader, model, args, device=device)
+        generate_segmentations_pretrained(test_loader, model, args, device=device, pretrained_model=pretrained_model)
     except KeyboardInterrupt:
         logging.info("Stopping right now!")
 
@@ -290,7 +290,7 @@ def step(
         patients_perf=None,
         device=torch.device('cpu'),
         auto_cast_bool=False,
-        model_pretrained=None
+        pretrained_model=None
 ):
     #  <------------ SETUP --------------->
     batch_time, losses = AverageMeter('Time', ':6.3f'), AverageMeter('Loss', ':.4e')
@@ -311,26 +311,26 @@ def step(
         #  <------------ FORWARD PASS --------------->
         with autocast(enabled=auto_cast_bool):
 
-            pred_pretrained = model_pretrained(inputs)
+            # Forecasting the estimated regions
+            pred_pretrained = pretrained_model(inputs)
             pred_pretrained = torch.sigmoid(pred_pretrained[-1]) > 0.9
             pred_pretrained = torch.where(pred_pretrained > 0, 1.1, .5)
-            # split the regions
+            # spliting the regions
             et_pred_pretrained = torch.unsqueeze(pred_pretrained[:, 0, :, :, :], dim=1)
             tc_pred_pretrained = torch.unsqueeze(pred_pretrained[:, 1, :, :, :], dim=1)
             wt_pred_pretrained = torch.unsqueeze(pred_pretrained[:, 2, :, :, :], dim=1)
-
-            inputs_et_activation = inputs * et_pred_pretrained
-            inputs_tc_activation = inputs * tc_pred_pretrained
-            inputs_wt_activation = inputs * wt_pred_pretrained
-
-            inputs_concatenated = torch.cat([inputs_et_activation, inputs_tc_activation, inputs_wt_activation], dim=1)
-
+            # putting attention into the sequences
+            inputs_concatenated = torch.cat([inputs * et_pred_pretrained,
+                                             inputs * tc_pred_pretrained,
+                                             inputs * wt_pred_pretrained], dim=1)
+            # predicting the new segmentation
             segmentation = model(inputs_concatenated)
-            print(segmentation[0].shape)
 
             # Evaluation depending on whether deep supervision is implemented
             if type(segmentation) == list:
-                loss = torch.sum(torch.stack([criterion(s, ground_truth) for s in segmentation]))
+                loss = torch.sum(torch.stack(
+                    [criterion(s, ground_truth)/(n+1) for n, s in enumerate(reversed(segmentation))])
+                )
             else:
                 loss = criterion(segmentation, ground_truth.float())
             patients_perf.append(dict(id=patient_id[0], epoch=epoch, split=mode, loss=loss.item()))
