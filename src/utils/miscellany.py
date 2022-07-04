@@ -306,7 +306,7 @@ def generate_segmentations_pretrained(
         with autocast(enabled=auto_cast_bool):
             with torch.no_grad():
                 pred_pretrained = pretrained_model(sequences)
-                pred_pretrained = torch.sigmoid(pred_pretrained[-1]) > 0.9
+                pred_pretrained = torch.sigmoid(pred_pretrained[-1]) > 0.5
                 pred_pretrained = torch.where(pred_pretrained > 0, 1.1, .5)
                 # spliting the regions
                 et_pred_pretrained = torch.unsqueeze(pred_pretrained[:, 0, :, :, :], dim=1)
@@ -518,3 +518,32 @@ def count_pixels(segmentation):
         pixels_dict[4.0] = 0
 
     return pixels_dict
+
+
+def labels_to_regions(segmentation: np.ndarray, regions: tuple) -> np.ndarray:
+    """
+    This function takes as input the image of a medical segmentation and transform it into 3 images stacked. Each
+    of the dimensions corresponds to the regions of interest.
+
+    - The region ET (enhancing tumor) is composed by the label 4
+    - The region TC (necrotic & not enhancing tumor core) is composed by the labels 2 and 4
+    - The WT (whole tumor) is composed by all the labels, 1, 2 and 4
+
+    Params:
+    *******
+        - img_segmentation: image segmented to transform into regions
+
+    Return:
+    *******
+        - et_present: it is true if the segmentation possess the ET region
+        - img_segmentation: stack of images of the regions
+    """
+    et = segmentation == 4
+    tc = np.logical_or(segmentation == 4, segmentation == 1)
+    wt = np.logical_or(tc, segmentation == 2)
+    regions_dict = {"et": et, "tc": tc, "wt": wt}
+
+    et_present = True if np.sum(et) >= 1 else False
+    segmentation = np.stack([regions_dict[region] for region in regions])
+
+    return segmentation

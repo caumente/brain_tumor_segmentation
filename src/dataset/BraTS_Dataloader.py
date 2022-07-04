@@ -90,7 +90,7 @@ class Brats(Dataset):
             if not self.has_ground_truth:
                 patient_info['seg'] = None
 
-            if self.has_ground_truth:
+            if self.has_ground_truth and '2021' not in str(patients_path):
                 if self.auto_cast_bool:
                     patient_info["grade"] = torch.tensor(self.name_grade.get(patient_id), dtype=torch.half)
                 else:
@@ -174,16 +174,16 @@ class Brats(Dataset):
                                                                          target_size=(160, 224, 160))
 
         if self.data_augmentation:
-            compose = transforms.Compose([
-                transforms.RandGaussianNoise(prob=0.3, mean=0, std=0.1),
-                transforms.RandStdShiftIntensity(factors=(1, 2), prob=0.1, nonzero=False, channel_wise=False),
-                transforms.RandAdjustContrast(prob=0.2, gamma=(1, 1.5)),
-                transforms.RandGaussianSmooth(prob=0.1),
-                transforms.RandGibbsNoise(prob=0.1, alpha=(0.1, 0.2)),
-                transforms.RandKSpaceSpikeNoise(prob=0.1, intensity_range=(2, 4)),
-                transforms.RandCoarseDropout(prob=0.3, holes=10, spatial_size=20),
-                ])
-            sequences = compose(sequences)
+            # compose = transforms.Compose([
+            #     transforms.RandGaussianNoise(prob=0.3, mean=0, std=0.1),
+            #     transforms.RandStdShiftIntensity(factors=(1, 2), prob=0.1, nonzero=False, channel_wise=False),
+            #     transforms.RandAdjustContrast(prob=0.2, gamma=(1, 1.5)),
+            #     transforms.RandGaussianSmooth(prob=0.1),
+            #     transforms.RandGibbsNoise(prob=0.1, alpha=(0.1, 0.2)),
+            #     transforms.RandKSpaceSpikeNoise(prob=0.1, intensity_range=(2, 4)),
+            #     transforms.RandCoarseDropout(prob=0.3, holes=10, spatial_size=20),
+            #     ])
+            # sequences = compose(sequences)
 
             if random() < 0.5:
                 sequences, ground_truth = np.flip(sequences, 3), np.flip(ground_truth, 3)

@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 # os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import argparse
@@ -10,20 +11,21 @@ from datetime import datetime
 from pathlib import Path
 from typing import Tuple
 import numpy as np
+import pandas as pd
 
 import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau  # CosineAnnealingLR
 from torch.utils.data import DataLoader
-torch.cuda.set_device('cuda:1')
+torch.cuda.set_device('cuda:0')
 
-from src.dataset.BraTS_dataset_folds_oversampled_lgg import folded_dataset_loading
+from src.dataset.BraTS_dataset_folds import folded_dataset_loading
 from src.loss import EDiceLoss
 from src.utils.metrics import save_metrics
 from src.utils.miscellany import AverageMeter, ProgressMeter
-from src.utils.miscellany import init_log, save_args, seed_everything
+from src.utils.miscellany import init_log, save_args, seed_everything, generate_segmentations
 from src.utils.models import init_model_segmentation
-from src.utils.models import save_checkpoint, optimizer_loading, loss_function_loading
+from src.utils.models import save_checkpoint, load_checkpoint, optimizer_loading, loss_function_loading
 
 
 def load_parameters(filepath=None):
@@ -124,17 +126,56 @@ def main(args):
         args.sequences = 2 * args.sequences
 
     # Loading datasets train-val-test and data augmenter
-    fold_train_loader, val_loader = folded_dataset_loading(args)
+    train_loader_folds, val_loader_folds, test_loader_folds = folded_dataset_loading(args)
     # Added to create the model without considering the "_seg" as another sequence more
     if "_seg" in args.sequences:
         args.sequences.remove("_seg")
 
-    for n, train_loader in enumerate(fold_train_loader):
+    for n, (train_loader, val_loader, test_loader) in enumerate(zip(train_loader_folds, val_loader_folds, test_loader_folds)):
+        # print(f"FOLD {n}")
+        #
+        # print("Train")
+        # for p in train_loader:
+        #     print(p["patient_id"])
+        # print("Validation")
+        # for p in val_loader:
+        #     print(p["patient_id"])
+        # print("Test")
+        # for p in test_loader:
+        #     print(p["patient_id"])
+
+        if n <= 7:
+            print(f"Skipped fold {n}")
+            continue
+        # elif n == 5:
+        #     try:
+        #
+        #         logging.info("\n**********************************************************")
+        #         logging.info("********** START VALIDATION OVER TEST DATASET ************")
+        #         logging.info("**********************************************************\n")
+        #         # Implementing the model and turning it from cpu to gpu
+        #         model = init_model_segmentation(architecture=args.architecture, sequences=args.sequences,
+        #                                         regions=args.regions,
+        #                                         width=args.width, save_folder=args.save_folder,
+        #                                         deep_supervision=args.deep_supervision)
+        #         model = model.to(device)
+        #
+        #         args.exp_name = "folds_3_4_5___20220701_102440__ShallowUNet_24_batch1_ranger_lr0.001_epochs400"
+        #         args.save_folder = Path(f"./../experiments/{args.exp_name}/fold{n}")
+        #         args.seg_folder = args.save_folder / "segs"
+        #         load_checkpoint(f'{str(args.save_folder)}/model_best.pth.tar', model)
+        #         generate_segmentations(test_loader, model, args, device=device)
+        #     except KeyboardInterrupt:
+        #         logging.info("Stopping right now!")
+        # else:
+        #     sys.exit()
+
         logging.info(f"\n************* FOLD {n} *************")
 
         args.save_folder = Path(f"./../experiments/{args.exp_name}/fold{n}")
         args.save_folder.mkdir(parents=True, exist_ok=True)
         args.seg_folder = args.save_folder / "segs"
+        args.seg_folder.mkdir(parents=True, exist_ok=True)
         os.mkdir(args.save_folder / "Progress/")
         args.save_folder = args.save_folder.resolve()
         save_args(args)  # store config as .yaml file
@@ -250,6 +291,20 @@ def main(args):
                     optimizer=optimizer.state_dict()
                 ),
                 checkpoint_path=args.save_folder)
+
+        try:
+            df_individual_perf = pd.DataFrame.from_records(patients_perf)
+            df_individual_perf.to_csv(path_or_buf=Path(f'{str(args.save_folder)}/patients_indiv_perf.csv'))
+            logging.info(df_individual_perf)
+
+            logging.info("\n**********************************************************")
+            logging.info("********** START VALIDATION OVER TEST DATASET ************")
+            logging.info("**********************************************************\n")
+
+            load_checkpoint(f'{str(args.save_folder)}/model_best.pth.tar', model)
+            generate_segmentations(test_loader, model, args, device=device)
+        except KeyboardInterrupt:
+            logging.info("Stopping right now!")
 
     # Ending process
     end_time = time.perf_counter()
