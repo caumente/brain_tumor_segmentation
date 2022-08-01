@@ -41,6 +41,7 @@ def get_folded_datasets(
     mapping = pd.read_csv(f"{path_images}/name_mapping.csv")
     mapping[['-', '--', 'name']] = mapping['BraTS_2020_subject_ID'].str.split("_", expand=True)
     mapping = mapping[['Grade', 'BraTS_2020_subject_ID', 'name']]
+    # mapping = mapping[mapping.Grade == 'HGG']
 
     patients_path_train, patients_path_val, patients_path_test = [], [], []
     kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=1)
@@ -174,11 +175,11 @@ if __name__ == '__main__':
                                            seed=1, debug_mode=False, crop_or_pad=(20, 20, 20),
                                            path_images="./datasets/BRATS2020/TrainingData/")
 
-    for f in train:
-        print(len(f))
-
-    for f in val:
-        print(len(f))
+    # for f in train:
+    #     print(len(f))
+    #
+    # for f in val:
+    #     print(len(f))
 
     for f in test:
-        print(len(f))
+        print(f)
