@@ -303,7 +303,8 @@ def step(
 
             # Evaluation depending on whether deep supervision is implemented
             if type(segmentation) == list:
-                loss = torch.sum(torch.stack([criterion(s, ground_truth) for s in segmentation]))
+                #loss = torch.sum(torch.stack([criterion(s, ground_truth) for s in segmentation]))
+                loss = torch.sum(torch.stack([criterion(s, ground_truth.double()) / (n + 1) for n, s in enumerate(reversed(segmentation))]))
             else:
                 loss = criterion(segmentation, ground_truth.float())
             patients_perf.append(dict(id=patient_id[0], epoch=epoch, split=mode, loss=loss.item()))
