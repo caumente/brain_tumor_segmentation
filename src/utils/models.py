@@ -15,7 +15,7 @@ from src.models.segmentator.MultiImageInput_ShallowUNet import MultiImageInput_S
 from src.models.segmentator.ShallowUNetSecondStage import ShallowUNetSecondStage
 from src.models.segmentator.MultiInputSkippedShallowUNet import MultiInputSkippedShallowUNet
 from src.models.segmentator.Unet3D import UNet3D
-from src.models.segmentator.VNet import VNet
+# from src.models.segmentator.VNet import VNet
 from src.models.segmentator.UltraDeepUNet import UltraDeepUNet
 from src.models.segmentator.ResidualShallowUNet import ResidualShallowUNet
 from src.models.segmentator.AttentionShallowUNet import AttentionShallowUNet
@@ -28,6 +28,7 @@ from src.loss.RegionBasedDice import RegionBasedDiceLoss
 from src.loss.ExperimentalDICE import ExperimentalDICE
 from monai.networks.nets import UNETR
 from src.models.segmentator.nnUNet2021 import nnUNet2021
+from monai.networks.nets import VNet, SegResNet
 
 
 def init_model_segmentation(
@@ -56,8 +57,12 @@ def init_model_segmentation(
 
     if architecture == '3DUNet':
         model = UNet3D(sequences=len(sequences), regions=len(regions))
-    elif architecture == 'VNet':
-        model = VNet(sequences=len(sequences), regions=len(regions))
+    elif architecture == 'monai_vnet':
+        model = VNet(spatial_dims=3, in_channels=4, out_channels=3, act=('elu', {'inplace': True}), dropout_prob=0, dropout_dim=0, bias=False)
+    elif architecture == 'monai_segresnet':
+        model = SegResNet(in_channels=4, out_channels=3, init_filters=24)
+    # elif architecture == 'VNet':
+        # model = VNet(sequences=len(sequences), regions=len(regions))
     elif architecture == 'ResidualUNet':
         model = resunet_3d(sequences=len(sequences), regions=len(regions), witdh=width)
     elif architecture == 'ShallowUNet':
