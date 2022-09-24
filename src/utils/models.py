@@ -61,7 +61,7 @@ def init_model_segmentation(
     elif architecture == 'monai_segresnet':
         model = SegResNet(in_channels=4, out_channels=3, init_filters=24)
     elif architecture == 'monai_unet':
-        monai = UNet(spatial_dims=3, in_channels=4, out_channels=3, channels=(24, 48, 96, 192), strides=(1, 1, 1, 1))
+        model = UNet(spatial_dims=3, in_channels=4, out_channels=3, channels=(24, 48, 96, 192), strides=(1, 1, 1, 1))
     # elif architecture == 'VNet':
         # model = VNet(sequences=len(sequences), regions=len(regions))
     elif architecture == 'ResidualUNet':
