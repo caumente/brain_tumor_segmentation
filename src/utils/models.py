@@ -8,7 +8,6 @@ from typing import List, Tuple
 from src.models.segmentator.DeepUNet import DeepUNet
 from src.models.segmentator.ResidualUNet import resunet_3d
 from src.models.segmentator.ShallowUNet import ShallowUNet
-from src.models.segmentator.ShallowUNet_v3 import ShallowUNet_v3
 from src.models.segmentator.DoubleShallowUNet import DoubleShallowUNet
 from src.models.segmentator.ShallowUNet_noPoolings import ShallowUNetNoPoolings
 from src.models.segmentator.MultiImageInput_ShallowUNet import MultiImageInput_ShallowUNet
@@ -28,7 +27,7 @@ from src.loss.RegionBasedDice import RegionBasedDiceLoss
 from src.loss.ExperimentalDICE import ExperimentalDICE
 from monai.networks.nets import UNETR
 from src.models.segmentator.nnUNet2021 import nnUNet2021
-from monai.networks.nets import VNet, SegResNet
+from monai.networks.nets import UNet,VNet, SegResNet
 
 
 def init_model_segmentation(
@@ -61,6 +60,8 @@ def init_model_segmentation(
         model = VNet(spatial_dims=3, in_channels=4, out_channels=3, act=('elu', {'inplace': True}), dropout_prob=0, dropout_dim=0, bias=False)
     elif architecture == 'monai_segresnet':
         model = SegResNet(in_channels=4, out_channels=3, init_filters=24)
+    elif architecture == 'monai_unet':
+        monai = UNet(spatial_dims=3, in_channels=4, out_channels=3, channels=(24, 48, 96, 192), strides=(1, 1, 1, 1))
     # elif architecture == 'VNet':
         # model = VNet(sequences=len(sequences), regions=len(regions))
     elif architecture == 'ResidualUNet':
@@ -68,37 +69,11 @@ def init_model_segmentation(
     elif architecture == 'ShallowUNet':
         model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
                             deep_supervision=deep_supervision)
-    elif architecture == 'ShallowUNet_v3':
-        model = ShallowUNet_v3(sequences=len(sequences), regions=len(regions), width=width,
-                               deep_supervision=deep_supervision)
     elif architecture == 'DoubleShallowUNet':
         model = DoubleShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
                                   deep_supervision=deep_supervision)
-    elif architecture == 'ShallowUNetNoPoolings':
-        model = ShallowUNetNoPoolings(sequences=len(sequences), regions=len(regions), width=width,
-                                      deep_supervision=deep_supervision)
-    elif architecture == 'ShallowUNetTesting':
-        model = MultiImageInput_ShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
-                                            deep_supervision=deep_supervision)
-    elif architecture == 'ShallowUNetSecondStage':
-        model = ShallowUNetSecondStage(sequences=len(sequences), regions=len(regions), width=width,
-                                       deep_supervision=deep_supervision)
-    elif architecture == 'MultiShallowUNet':
-        model = MultiInputSkippedShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
-                                             deep_supervision=deep_supervision)
     elif architecture == 'DeepUNet':
         model = DeepUNet(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
-    elif architecture == 'UltraDeepUNet':
-        model = UltraDeepUNet(sequences=len(sequences), regions=len(regions), width=width,
-                              deep_supervision=deep_supervision)
-    elif architecture == 'AttentionShallowUNet':
-        model = AttentionShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
-    elif architecture == 'ResidualShallowUNet':
-        model = ResidualShallowUNet(sequences=len(sequences), regions=len(regions), width=width)
-    elif architecture == 'UNETR':
-        model = UNETR(in_channels=len(sequences), out_channels=len(regions), img_size=[160, 224, 160])
-    elif architecture == 'nnUNet2021':
-        model = nnUNet2021(sequences=len(sequences), regions=len(regions))
     else:
         model = torch.nn.Module()
         assert "The model selected does not exist. " \
