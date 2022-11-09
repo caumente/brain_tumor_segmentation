@@ -132,44 +132,7 @@ def main(args):
         args.sequences.remove("_seg")
 
     for n, (train_loader, val_loader, test_loader) in enumerate(zip(train_loader_folds, val_loader_folds, test_loader_folds)):
-        # print(f"FOLD {n}")
-        #
-        # print("Train")
-        # for p in train_loader:
-        #     print(p["patient_id"])
-        # print("Validation")
-        # for p in val_loader:
-        #     print(p["patient_id"])
-        # print("Test")
-        # for p in test_loader:
-        #     print(p["patient_id"])
-
-        if n <= 7:
-            print(f"Skipped fold {n}")
-            continue
-        # elif n == 5:
-        #     try:
-        #
-        #         logging.info("\n**********************************************************")
-        #         logging.info("********** START VALIDATION OVER TEST DATASET ************")
-        #         logging.info("**********************************************************\n")
-        #         # Implementing the model and turning it from cpu to gpu
-        #         model = init_model_segmentation(architecture=args.architecture, sequences=args.sequences,
-        #                                         regions=args.regions,
-        #                                         width=args.width, save_folder=args.save_folder,
-        #                                         deep_supervision=args.deep_supervision)
-        #         model = model.to(device)
-        #
-        #         args.exp_name = "folds_3_4_5___20220701_102440__ShallowUNet_24_batch1_ranger_lr0.001_epochs400"
-        #         args.save_folder = Path(f"./../experiments/{args.exp_name}/fold{n}")
-        #         args.seg_folder = args.save_folder / "segs"
-        #         load_checkpoint(f'{str(args.save_folder)}/model_best.pth.tar', model)
-        #         generate_segmentations(test_loader, model, args, device=device)
-        #     except KeyboardInterrupt:
-        #         logging.info("Stopping right now!")
-        # else:
-        #     sys.exit()
-
+        
         logging.info(f"\n************* FOLD {n} *************")
 
         args.save_folder = Path(f"./../experiments/{args.exp_name}/fold{n}")

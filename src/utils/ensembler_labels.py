@@ -1,3 +1,5 @@
+import sys
+sys.path.append("./../../")
 from collections import Counter
 from SimpleITK import GetImageFromArray, WriteImage, ReadImage
 from src.utils.dataset import load_nii
@@ -19,8 +21,8 @@ def ensemble_label(imgs):
         for j in range(imgs[0].shape[1]):
             for k in range(imgs[0].shape[2]):
 
-                preds = [imgs[0][i, j, k] for _ in range(len(imgs))]
-
+                preds = [imgs[_][i, j, k] for _ in range(len(imgs))]
+                # TODO: if the label is 0 and other, use 0 or the other one
                 if set(preds) == 1 or set(preds) == 3:
                     ensemble[i, j, k] = int(preds[0])
                 else:
