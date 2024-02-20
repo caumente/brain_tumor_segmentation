@@ -1,5 +1,5 @@
 {
-  "architecture": "ShallowUNet",
+  "architecture": "nnUNet2021",
   "width": 24,
   "sequences": ["_t1", "_t1ce", "_t2", "_flair"],
   "regions": ["et", "tc", "wt"],
@@ -23,7 +23,7 @@
   "devices" : 1,
   "debug_mode": false,
   "val": 1,
-  "com": "Fold",
+  "com": "TEST",
   "postprocessing_threshold": 500,
   "path_dataset": "./../datasets/BRATS2020/TrainingData/",
   "auto_cast_bool": true,

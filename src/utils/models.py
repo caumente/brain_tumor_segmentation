@@ -57,11 +57,11 @@ def init_model_segmentation(
     if architecture == '3DUNet':
         model = UNet3D(sequences=len(sequences), regions=len(regions))
     elif architecture == 'monai_vnet':
-        model = VNet(spatial_dims=3, in_channels=4, out_channels=3, act=('elu', {'inplace': True}), dropout_prob=0, dropout_dim=0, bias=False)
+        model = VNet(spatial_dims=3, in_channels=len(sequences), out_channels=len(regions), bias=False)
     elif architecture == 'monai_segresnet':
-        model = SegResNet(in_channels=4, out_channels=3, init_filters=24)
+        model = SegResNet(in_channels=len(sequences), out_channels=len(regions), init_filters=24)
     elif architecture == 'monai_unet':
-        model = UNet(spatial_dims=3, in_channels=4, out_channels=3, channels=(24, 48, 96, 192), strides=(1, 1, 1, 1))
+        model = UNet(spatial_dims=3, in_channels=len(sequences), out_channels=len(regions), channels=(24, 48, 96, 192), strides=(1, 1, 1, 1))
     # elif architecture == 'VNet':
         # model = VNet(sequences=len(sequences), regions=len(regions))
     elif architecture == 'ResidualUNet':
@@ -69,9 +69,8 @@ def init_model_segmentation(
     elif architecture == 'ShallowUNet':
         model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
                             deep_supervision=deep_supervision)
-    elif architecture == 'DoubleShallowUNet':
-        model = DoubleShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
-                                  deep_supervision=deep_supervision)
+    elif architecture == 'nnUNet2021':
+        model = nnUNet2021(sequences=len(sequences), regions=len(regions))
     elif architecture == 'DeepUNet':
         model = DeepUNet(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
     else:

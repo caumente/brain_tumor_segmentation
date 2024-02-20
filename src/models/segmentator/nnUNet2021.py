@@ -17,28 +17,28 @@ class nnUNet2021(nn.Module):
     def __init__(self, sequences, regions):
         super(nnUNet2021, self).__init__()
 
-        widths = [32, 64, 128, 256]
+        widths = [32, 64, 128, 256, 320]
 
         # Encoders
         self.encoder1 = LevelBlock(sequences, widths[0], widths[0])
         self.encoder2 = LevelBlock(widths[0], widths[1], widths[1])
         self.encoder3 = LevelBlock(widths[1], widths[2], widths[2])
         self.encoder4 = LevelBlock(widths[2], widths[3], widths[3])
-        self.encoder5 = LevelBlock(widths[3], widths[3], widths[3])
+        self.encoder5 = LevelBlock(widths[3], widths[4], widths[4])
 
         # Bottleneck
-        self.bottleneck = LevelBlock(widths[3], widths[3], widths[3])
+        self.bottleneck = LevelBlock(widths[4], widths[4], widths[4])
 
         # Decoders
-        self.decoder5 = LevelBlock(widths[3] + widths[3], widths[2], widths[2])
-        self.decoder4 = LevelBlock(widths[3] + widths[2], widths[2], widths[2])
+        self.decoder5 = LevelBlock(widths[4] + widths[4], widths[3], widths[3])
+        self.decoder4 = LevelBlock(widths[3] + widths[3], widths[2], widths[2])
         self.decoder3 = LevelBlock(widths[2] + widths[2], widths[1], widths[1])
         self.decoder2 = LevelBlock(widths[1] + widths[1], widths[0], widths[0])
-        self.decoder1 = LevelBlock(widths[0] + widths[0], widths[0], widths[0] // 2)
+        self.decoder1 = LevelBlock(widths[0] + widths[0], widths[0], widths[0])
 
         # Upsamplers
-        self.upsample5 = nn.ConvTranspose3d(widths[3], widths[3], kernel_size=2, stride=2)
-        self.upsample4 = nn.ConvTranspose3d(widths[2], widths[2], kernel_size=2, stride=2)
+        self.upsample5 = nn.ConvTranspose3d(widths[4], widths[4], kernel_size=2, stride=2)
+        self.upsample4 = nn.ConvTranspose3d(widths[3], widths[3], kernel_size=2, stride=2)
         self.upsample3 = nn.ConvTranspose3d(widths[2], widths[2], kernel_size=2, stride=2)
         self.upsample2 = nn.ConvTranspose3d(widths[1], widths[1], kernel_size=2, stride=2)
         self.upsample1 = nn.ConvTranspose3d(widths[0], widths[0], kernel_size=2, stride=2)
@@ -59,10 +59,9 @@ class nnUNet2021(nn.Module):
             nn.ConvTranspose3d(widths[0], widths[0], kernel_size=2, stride=2),
             conv1x1(widths[0], regions)
         )
-        self.output1 = conv1x1(widths[0] // 2, regions)
+        self.output1 = conv1x1(widths[0], regions)
 
         self.weights_initialization()
-
 
     def weights_initialization(self):
         for m in self.modules():
@@ -71,7 +70,6 @@ class nnUNet2021(nn.Module):
 
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
-
 
     def forward(self, x):
 
@@ -108,15 +106,10 @@ class nnUNet2021(nn.Module):
         output2 = self.output2(d2)
         output1 = self.output1(d1)
 
-
-
         return [output4, output3, output2, output1]
 
 
-
-
-
-def test():
+if __name__ == "__main__":
     seq_input = torch.rand(1, 4, 160, 224, 160)
     seq_ouput = torch.rand(1, 3, 160, 224, 160)
 
@@ -130,6 +123,3 @@ def test():
         assert seq_ouput.shape == p.shape
 
     # summary(model, (4, 160, 224, 160))
-
-if __name__ == "__main__":
-    test()

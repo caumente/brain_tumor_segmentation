@@ -147,8 +147,8 @@ def plot_results_patient(t1, t1ce, t2, flair, seg, pred, _slice, save_path=None)
         plt.show()
 
 
-def plot_histograms(t1, t1ce, t2, flair, bins=100, save_path=None):
-    fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+def plot_histograms(t1, t1ce, t2, flair, bins=100, sharex=False, sharey=False, save_path=None):
+    fig, axes = plt.subplots(2, 2, figsize=(16, 10), sharex=sharex, sharey=sharey)
     fig.suptitle('Intensity histograms', fontsize=30)
 
     # Plotting histograms
