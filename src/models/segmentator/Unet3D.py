@@ -11,7 +11,7 @@ class UNet3D(nn.Module):
     def __init__(self, sequences, regions):
         super(UNet3D, self).__init__()
 
-        features = [64, 128, 256, 512]
+        features = [64, 128, 256, 256]
 
         # Encoders
         self.encoder1 = UBlock(sequences, features[0] // 2, features[0])
@@ -63,12 +63,14 @@ class UNet3D(nn.Module):
 
 if __name__ == "__main__":
     seq_input = torch.rand(1, 4, 160, 224, 160)
-    seq_ouput = torch.rand(1, 3, 160, 224, 160)
+    # seq_ouput = torch.rand(1, 3, 160, 224, 160)
 
     model = UNet3D(sequences=4, regions=3)
     preds = model(seq_input)
-    # from src.utils.models import count_parameters
-    # print(count_parameters(model))
+    from flopth import flopth
+    flops, params = flopth(model, in_size=((4, 160, 224, 160),), show_detail=False, bare_number=True)
+    print(flops/1000000000000)
+
     param_size = 0
     for param in model.parameters():
         param_size += param.nelement() * param.element_size()
@@ -78,8 +80,3 @@ if __name__ == "__main__":
 
     size_all_mb = (param_size + buffer_size) / 1024 ** 2
     print('model size: {:.3f}MB'.format(size_all_mb))
-
-    print(seq_input.shape)
-    print(preds.shape)
-
-    assert seq_ouput.shape == preds.shape
