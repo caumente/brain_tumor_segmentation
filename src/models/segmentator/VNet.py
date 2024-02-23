@@ -161,18 +161,30 @@ class VNet(nn.Module):
         return out
 
 
-def test():
+
+
+if __name__ == "__main__":
     seq_input = torch.rand(1, 4, 160, 224, 160)
     seq_ouput = torch.rand(1, 3, 160, 224, 160)
 
     model = VNet(elu=True, sequences=4, regions=3)
     preds = model(seq_input)
+    from flopth import flopth
+    flops, params = flopth(model, in_size=((4, 160, 224, 160),), show_detail=False, bare_number=True)
+    print(flops/1000000000000)
 
-    print(seq_input.shape)
-    print(preds.shape)
+    param_size = 0
+    for param in model.parameters():
+        param_size += param.nelement() * param.element_size()
+    buffer_size = 0
+    for buffer in model.buffers():
+        buffer_size += buffer.nelement() * buffer.element_size()
 
-    assert seq_ouput.shape == preds.shape
-
-
-if __name__ == "__main__":
-    test()
+    size_all_mb = (param_size + buffer_size) / 1024 ** 2
+    print('model size: {:.3f}MB'.format(size_all_mb))
+    # from fvcore.nn import FlopCountAnalysis
+    #
+    # flops = FlopCountAnalysis(model, seq_input)
+    # print(flops.total())
+    #
+    # assert seq_ouput.shape == preds.shape

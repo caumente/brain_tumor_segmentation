@@ -101,17 +101,11 @@ if __name__ == "__main__":
     seq_input = torch.rand(1, 4, 160, 224, 160)
     seq_ouput = torch.rand(1, 3, 160, 224, 160)
 
-    model = ShallowUNet(sequences=4, regions=3, width=24, deep_supervision=False)
+    model = ShallowUNet(sequences=4, regions=3, width=24, deep_supervision=True)
     preds = model(seq_input)
-
-    print(seq_input.shape)
-    if model.deep_supervision:
-        for p in preds:
-            print(p.shape)
-            assert seq_ouput.shape == p.shape
-    else:
-        print(preds.shape)
-        assert seq_ouput.shape == preds.shape
+    from flopth import flopth
+    flops, params = flopth(model, in_size=((4, 160, 224, 160),), show_detail=False, bare_number=True)
+    print(flops/1000000000000)
 
     param_size = 0
     for param in model.parameters():
@@ -122,3 +116,13 @@ if __name__ == "__main__":
 
     size_all_mb = (param_size + buffer_size) / 1024 ** 2
     print('model size: {:.3f}MB'.format(size_all_mb))
+
+
+    # print(seq_input.shape)
+    # if model.deep_supervision:
+    #     for p in preds:
+    #         print(p.shape)
+    #         assert seq_ouput.shape == p.shape
+    # else:
+    #     print(preds.shape)
+    #     assert seq_ouput.shape == preds.shape
