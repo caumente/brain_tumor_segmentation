@@ -6,7 +6,7 @@ from src.models.layers import FullyConnectedClassifier
 
 class BTSUNetClassifier(nn.Module):
     """
-    This class implements the encoder from the Shallow UNet network to create a classifier.
+    This class implements the encoder from the BTS UNet network to create a classifier.
     """
 
     name = "BTS U-Net Classifier"
