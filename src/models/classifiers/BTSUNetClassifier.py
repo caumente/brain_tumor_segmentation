@@ -1,37 +1,26 @@
 import torch
 from torch import nn
-from src.models.layers import LevelBlock
 from src.models.layers import ConvInNormLeReLU
 from src.models.layers import FullyConnectedClassifier
 
 
-class ShallowUNetClassifier(nn.Module):
+class BTSUNetClassifier(nn.Module):
     """
     This class implements the encoder from the Shallow UNet network to create a classifier.
     """
 
-    name = "Shallow U-Net ShallowUNetClassifier"
+    name = "BTS U-Net Classifier"
 
     def __init__(self, sequences, classes, width, dense_neurons):
-        super(ShallowUNetClassifier, self).__init__()
+        super(BTSUNetClassifier, self).__init__()
 
         widths = [width * 2 ** i for i in range(5)]
         # Encoders
-        # self.encoder1 = LevelBlock(sequences, widths[0] // 2, widths[0])
-        # self.encoder2 = LevelBlock(widths[0], widths[1] // 2, widths[1])
-        # self.encoder3 = LevelBlock(widths[1], widths[2] // 2, widths[2])
-        # self.encoder4 = LevelBlock(widths[2], widths[3] // 2, widths[3])
-        # self.encoder5 = LevelBlock(widths[3], widths[4] // 2, widths[4])
-
         self.encoder1 = ConvInNormLeReLU(sequences, widths[0])
         self.encoder2 = ConvInNormLeReLU(widths[0], widths[1])
         self.encoder3 = ConvInNormLeReLU(widths[1], widths[2])
         self.encoder4 = ConvInNormLeReLU(widths[2], widths[3])
         self.encoder5 = ConvInNormLeReLU(widths[3], widths[4])
-
-        # Bottleneck
-        # self.bottleneck = LevelBlock(widths[4], widths[4], widths[4])
-        # self.bottleneck2 = ConvInNormLeReLU(widths[3] * 2, widths[2])
 
         # Upsample, downsample and output steps
         self.downsample = nn.MaxPool3d(2, 2)
@@ -66,19 +55,14 @@ class ShallowUNetClassifier(nn.Module):
 
         # FCN
         x = self.classifier(x)
-        # x = torch.sigmoid(x)
 
         return x
 
 
-def test():
+if __name__ == "__main__":
     seq_input = torch.rand(1, 4, 160, 224, 160)
 
-    model = ShallowUNetClassifier(sequences=4, classes=2, width=6, dense_neurons=128)
+    model = BTSUNetClassifier(sequences=4, classes=2, width=6, dense_neurons=128)
     preds = model(seq_input)
     print(sum(p.numel() for p in model.parameters() if p.requires_grad))
     print(preds.shape)
-
-
-if __name__ == "__main__":
-    test()
