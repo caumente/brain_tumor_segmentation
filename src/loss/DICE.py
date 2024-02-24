@@ -3,12 +3,12 @@ import torch.nn as nn
 import logging
 
 
-class EDiceLoss(nn.Module):
+class DICE(nn.Module):
     """Dice loss tailored to Brats need.
     """
 
     def __init__(self, classes, do_sigmoid=True):
-        super(EDiceLoss, self).__init__()
+        super(DICE, self).__init__()
         self.do_sigmoid = do_sigmoid
         self.labels = [label.upper() for label in classes]
         self.device = "cpu"
@@ -27,7 +27,7 @@ class EDiceLoss(nn.Module):
                 else:
                     return torch.tensor(0., device="cuda")
             # Threshold the pred
-        intersection = EDiceLoss.compute_intersection(inputs, targets)
+        intersection = DICE.compute_intersection(inputs, targets)
         if metric_mode:
             dice = (2 * intersection) / ((inputs.sum() + targets.sum()) * 1.0)
         else:

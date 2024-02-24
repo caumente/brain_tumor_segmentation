@@ -1,1 +1,1 @@
-from src.loss.dice import EDiceLoss
+from src.loss.DICE import DICE
