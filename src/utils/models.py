@@ -54,7 +54,7 @@ def init_model_segmentation(
                      strides=(1, 1, 1, 1))
     elif architecture == 'ResidualUNet':
         model = resunet_3d(sequences=len(sequences), regions=len(regions), witdh=width)
-    elif architecture == 'ShallowUNet':
+    elif architecture == 'BTSUNet':
         model = BTSUNet(sequences=len(sequences), regions=len(regions), width=width,
                         deep_supervision=deep_supervision)
     elif architecture == 'nnUNet2021':
@@ -62,7 +62,7 @@ def init_model_segmentation(
     else:
         model = torch.nn.Module()
         assert "The model selected does not exist. " \
-               "Please, chose some of the following architectures: 3DUNet, VNet, ResidualUNet, ShallowUNet, DeepUNet"
+               "Please, chose some of the following architectures: 3DUNet, VNet, ResidualUNet, BTSUNet, DeepUNet"
 
     # Saving the model scheme in a .txt file
     if save_folder is not None:
@@ -100,13 +100,13 @@ def init_model_classification(
     logging.info(f"Creating {architecture} model")
     logging.info(f"Sequences for feeding the network: {len(sequences)} ({sequences})")
 
-    if architecture == 'ShallowUNetClassifier':
+    if architecture == 'BTSUNetClassifier':
         model = BTSUNetClassifier(sequences=len(sequences), classes=classes, width=width,
                                   dense_neurons=dense_neurons)
     else:
         model = torch.nn.Module()
         assert "The model selected does not exist. " \
-               "Please, chose some of the following architectures: 3DUNet, VNet, ResidualUNet, ShallowUNet, DeepUNet"
+               "Please, chose some of the following architectures: 3DUNet, VNet, ResidualUNet, BTSUNet, DeepUNet"
 
     # Saving the model scheme in a .txt file
     if save_folder is not None:
