@@ -1,6 +1,6 @@
 import sys
 import os
-# os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+# os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import argparse
 import json
@@ -17,7 +17,7 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau  # CosineAnnealingLR
 from torch.utils.data import DataLoader
 import torch.nn as nn
-torch.cuda.set_device('cuda:1')
+torch.cuda.set_device('cuda:0')
 
 from src.dataset.BraTS_dataset import dataset_loading
 from src.utils.metrics import save_metrics

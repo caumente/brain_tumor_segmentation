@@ -46,7 +46,7 @@ init_log(log_name=f"./{str(args.save_folder)}/inference.log")
 logging.info(args)
 
 # Checking whether a GPU is available or
-device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 num_gpus = torch.cuda.device_count()
 
 # Implementing the model, turning it from cpu to gpu, and loading parameters
