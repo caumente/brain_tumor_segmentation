@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 torch.cuda.set_device('cuda:0')
 
 from src.dataset.BraTS_dataset import dataset_loading
-from src.loss import EDiceLoss
+from src.loss import DICE
 from src.utils.metrics import save_metrics
 from src.utils.miscellany import AverageMeter, ProgressMeter
 from src.utils.miscellany import init_log, save_args, seed_everything, generate_segmentations
@@ -138,7 +138,7 @@ def main(args):
 
     # Implementing loss function and metric
     criterion = loss_function_loading(loss_function=args.loss).to(device)
-    metric = EDiceLoss(classes=args.regions).to(device).metric
+    metric = DICE(classes=args.regions).to(device).metric
 
     # Loading datasets train-val-test and data augmenter
     train_loader, val_loader, test_loader = dataset_loading(args)
@@ -302,8 +302,7 @@ def step(
             segmentation = model(inputs)
 
             # Evaluation depending on whether deep supervision is implemented
-            if type(segmentation) == list:
-                #loss = torch.sum(torch.stack([criterion(s, ground_truth) for s in segmentation]))
+            if isinstance(segmentation, list):
                 loss = torch.sum(torch.stack([criterion(s, ground_truth.double()) / (n + 1) for n, s in enumerate(reversed(segmentation))]))
             else:
                 loss = criterion(segmentation, ground_truth.float())
@@ -316,7 +315,7 @@ def step(
                 logging.info("NaN in model loss!!")
 
             if mode == "val":
-                if type(segmentation) == list:
+                if isinstance(segmentation, list):
                     for s in segmentation:
                         metrics.extend(metric(s, ground_truth))
                 else:

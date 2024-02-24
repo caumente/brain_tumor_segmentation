@@ -17,10 +17,11 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau  # CosineAnnealingLR
 from torch.utils.data import DataLoader
+
 torch.cuda.set_device('cuda:0')
 
 from src.dataset.BraTS_dataset_folds import folded_dataset_loading
-from src.loss import EDiceLoss
+from src.loss import DICE
 from src.utils.metrics import save_metrics
 from src.utils.miscellany import AverageMeter, ProgressMeter
 from src.utils.miscellany import init_log, save_args, seed_everything, generate_segmentations
@@ -91,7 +92,6 @@ def load_parameters(filepath=None):
 
 
 def main(args):
-
     # This process can not be carry out without a GPU
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     num_gpus = torch.cuda.device_count()
@@ -131,8 +131,9 @@ def main(args):
     if "_seg" in args.sequences:
         args.sequences.remove("_seg")
 
-    for n, (train_loader, val_loader, test_loader) in enumerate(zip(train_loader_folds, val_loader_folds, test_loader_folds)):
-        
+    for n, (train_loader, val_loader, test_loader) in enumerate(
+            zip(train_loader_folds, val_loader_folds, test_loader_folds)):
+
         logging.info(f"\n************* FOLD {n} *************")
 
         args.save_folder = Path(f"./../experiments/{args.exp_name}/fold{n}")
@@ -151,7 +152,7 @@ def main(args):
 
         # Implementing loss function and metric
         criterion = loss_function_loading(loss_function=args.loss).to(device)
-        metric = EDiceLoss(classes=args.regions).to(device).metric
+        metric = DICE(classes=args.regions).to(device).metric
 
         # optimizer
         optimizer = optimizer_loading(model=model, optimizer=args.optimizer, learning_rate=args.lr,
@@ -290,7 +291,6 @@ def step(
         device=torch.device('cpu'),
         auto_cast_bool=False
 ):
-
     #  <------------ SETUP --------------->
     batch_time, losses = AverageMeter('Time', ':6.3f'), AverageMeter('Loss', ':.4e')
 
@@ -313,7 +313,7 @@ def step(
             segmentation = model(inputs)
 
             # Evaluation depending on whether deep supervision is implemented
-            if type(segmentation) == list:
+            if isinstance(segmentation, list):
                 loss = torch.sum(torch.stack([criterion(s, ground_truth) for s in segmentation]))
             else:
                 loss = criterion(segmentation, ground_truth)
@@ -326,7 +326,7 @@ def step(
                 logging.info("NaN in model loss!!")
 
             if mode == "val":
-                if type(segmentation) == list:
+                if isinstance(segmentation, list):
                     for s in segmentation:
                         metrics.extend(metric(s, ground_truth))
                 else:
