@@ -1,5 +1,6 @@
-from torch import nn
 from collections import OrderedDict
+
+from torch import nn
 
 
 def conv1x1(in_channels, out_channels):
@@ -77,6 +78,7 @@ class ConvBatchNormReLU(nn.Sequential):
         - out_channels: Number of output channels
 
     """
+
     def __init__(self, in_channels, out_channels):
         super(ConvBatchNormReLU, self).__init__(
             OrderedDict(
@@ -100,6 +102,7 @@ class UBlock(nn.Sequential):
         - out_channels: Number of output channels
 
     """
+
     def __init__(self, in_channels, mid_channels, out_channels):
         super(UBlock, self).__init__(
             OrderedDict(
@@ -120,6 +123,7 @@ class AttentionGate(nn.Sequential):
         - out_channels: Number of output channels
 
     """
+
     def __init__(self, in_channels):
         super(AttentionGate, self).__init__(
             OrderedDict(
@@ -169,17 +173,13 @@ class FullyConnectedClassifier(nn.Sequential):
 
     """
 
-    def __init__(self, width, middle_num_neurons=128, classes=2):
+    def __init__(self, width, middle_num_neurons=128, classes=1):
         super(FullyConnectedClassifier, self).__init__(
             OrderedDict(
                 [
-                    ('HiddenLayer', nn.Linear(in_features=width*5*7*5, out_features=middle_num_neurons)),
+                    ('HiddenLayer', nn.Linear(in_features=width * 5 * 7 * 5, out_features=middle_num_neurons)),
                     ('ReLU1', nn.ReLU()),
-                    #('InNorm', nn.InstanceNorm1d(middle_num_neurons)),
-                    # ('layer2', nn.Linear(in_features=middle_num_neurons, out_features=64)),
-                    # ('ReLU2', nn.ReLU()),
-                    #('Dropout', nn.Dropout(.2)),
-                    ('Out', nn.Linear(in_features=middle_num_neurons, out_features=1))
+                    ('Out', nn.Linear(in_features=middle_num_neurons, out_features=classes))
                 ]
             )
         )
@@ -207,4 +207,3 @@ class DoubleLevelBlock(nn.Sequential):
                     ('ConvInNormLRelu4', ConvInNormLeReLU(mid_channels, out_channels))
                 ])
         )
-

@@ -1,11 +1,6 @@
 import torch.nn as nn
 import torch
 
-"""
-Implementation of this model is borrowed and modified (to support multi-channels and latest pytorch version) from:
-https://github.com/Dawn90/V-Net.pytorch
-"""
-
 
 def passthrough(x):
     """
@@ -13,11 +8,13 @@ def passthrough(x):
     """
     return x
 
+
 def make_convs_residuals(n_channels, n_convolutions, elu):
     layers = []
     for _ in range(n_convolutions):
         layers.append(LUConv(n_channels, elu))
     return nn.Sequential(*layers)
+
 
 def ActivationLayer(elu, nchan):
     if elu:
@@ -83,21 +80,21 @@ class DownTransition(nn.Module):
 
 
 class UpTransition(nn.Module):
-    def __init__(self, inChans, outChans, nConvs, elu, dropout=False):
+    def __init__(self, in_channels, out_channels, width, elu, dropout=False):
         super(UpTransition, self).__init__()
-        self.up_conv = nn.ConvTranspose3d(inChans, outChans // 2, kernel_size=2, stride=2)
+        self.up_conv = nn.ConvTranspose3d(in_channels, out_channels // 2, kernel_size=2, stride=2)
 
-        self.bn1 = torch.nn.BatchNorm3d(outChans // 2)
+        self.bn1 = torch.nn.BatchNorm3d(out_channels // 2)
         self.do2 = nn.Dropout3d()
-        self.activation1 = ActivationLayer(elu, outChans // 2)
-        self.activation2 = ActivationLayer(elu, outChans)
+        self.activation1 = ActivationLayer(elu, out_channels // 2)
+        self.activation2 = ActivationLayer(elu, out_channels)
 
         if dropout:
             self.do1 = nn.Dropout3d()
         else:
             self.do1 = passthrough
 
-        self.ops = make_convs_residuals(outChans, nConvs, elu)
+        self.ops = make_convs_residuals(out_channels, width, elu)
 
     def forward(self, x, skipx):
         out = self.do1(x)
@@ -128,9 +125,10 @@ class OutputTransition(nn.Module):
 
 class VNet(nn.Module):
     """
-    Implementations based on the Vnet paper: https://arxiv.org/abs/1606.04797
+    This class implements 3D UNey network. More details can be found in the following paper:
+     https://arxiv.org/abs/1606.04797
     """
-    name = 'Vnet'
+    name = 'VNet'
 
     def __init__(self, elu=True, sequences=4, regions=3):
         super(VNet, self).__init__()
@@ -161,18 +159,20 @@ class VNet(nn.Module):
         return out
 
 
-
-
 if __name__ == "__main__":
+    # Defining variables
     seq_input = torch.rand(1, 4, 160, 224, 160)
     seq_ouput = torch.rand(1, 3, 160, 224, 160)
-
     model = VNet(elu=True, sequences=4, regions=3)
     preds = model(seq_input)
-    from flopth import flopth
-    flops, params = flopth(model, in_size=((4, 160, 224, 160),), show_detail=False, bare_number=True)
-    print(flops/1000000000000)
 
+    # Getting TFLOPs
+    from flopth import flopth
+
+    flops, params = flopth(model, in_size=((4, 160, 224, 160),), show_detail=False, bare_number=True)
+    print('Number of TFLOPs: {:.3f}'.format(flops / 1e12))
+
+    # Getting number of trainable parameters
     param_size = 0
     for param in model.parameters():
         param_size += param.nelement() * param.element_size()
@@ -181,10 +181,14 @@ if __name__ == "__main__":
         buffer_size += buffer.nelement() * buffer.element_size()
 
     size_all_mb = (param_size + buffer_size) / 1024 ** 2
-    print('model size: {:.3f}MB'.format(size_all_mb))
-    # from fvcore.nn import FlopCountAnalysis
-    #
-    # flops = FlopCountAnalysis(model, seq_input)
-    # print(flops.total())
-    #
-    # assert seq_ouput.shape == preds.shape
+    print('Model size: {:.3f}MB'.format(size_all_mb))
+
+    # Validating output dimensions
+    print(f"Input shape: {seq_input.shape}")
+    if isinstance(preds, list):
+        for n, p in enumerate(preds):
+            print(f"Output shape (n): {p.shape}")
+            assert seq_ouput.shape == p.shape
+    else:
+        print(f"Output shape: {preds.shape}")
+        assert seq_ouput.shape == preds.shape

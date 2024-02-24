@@ -1,23 +1,20 @@
 import torch
 from torch import nn
-from src.models.layers import conv1x1, conv3x3
-from src.models.layers import LevelBlock
+
 from src.models.layers import ConvInNormLeReLU, AttentionGate
-from torchsummary import summary
+from src.models.layers import LevelBlock
+from src.models.layers import conv1x1, conv3x3
 
 
-class AttentionShallowUNet(nn.Module):
+class AttentionBTSUNet(nn.Module):
     """
-    This class implements a variation of 3D Unet network. Main modifications are:
-        - Replacement of ReLU activation layer by LeakyReLU
-        - Use of instance normalization to ensure a normalization by each sequence
-
+    This class implements a variation of BTS UNet network. Main modifications are the inclusions of AttentionGates
     """
 
-    name = "Attention Shallow U-Net"
+    name = "Attention BTS U-Net"
 
     def __init__(self, sequences, regions, width):
-        super(AttentionShallowUNet, self).__init__()
+        super(AttentionBTSUNet, self).__init__()
 
         widths = [width * 2 ** i for i in range(4)]
 
@@ -84,7 +81,7 @@ class AttentionShallowUNet(nn.Module):
 
         # attention 2
         alpha2 = torch.add(self.strided_conv2(e2), d3)
-        attention_grid2= self.upsample(self.att2(alpha2))
+        attention_grid2 = self.upsample(self.att2(alpha2))
         e2_attentioned = torch.mul(e2, attention_grid2)
 
         up2 = self.upsample(d3)
@@ -92,7 +89,7 @@ class AttentionShallowUNet(nn.Module):
 
         # attention 1
         alpha1 = torch.add(self.strided_conv1(e1), d2)
-        attention_grid1= self.upsample(self.att1(alpha1))
+        attention_grid1 = self.upsample(self.att1(alpha1))
         e1_attentioned = torch.mul(e1, attention_grid1)
 
         up1 = self.upsample(d2)
@@ -104,21 +101,35 @@ class AttentionShallowUNet(nn.Module):
         return output
 
 
-
-def test():
+if __name__ == "__main__":
+    # Defining variables
     seq_input = torch.rand(1, 4, 160, 224, 160)
     seq_ouput = torch.rand(1, 3, 160, 224, 160)
-
-    model = AttentionShallowUNet(sequences=4, regions=3, width=24)
+    model = AttentionBTSUNet(sequences=4, regions=3, width=24)
     preds = model(seq_input)
 
-    print(seq_input.shape)
-    print(preds.shape)
+    # Getting TFLOPs
+    from flopth import flopth
+    flops, params = flopth(model, in_size=((4, 160, 224, 160),), show_detail=False, bare_number=True)
+    print('Number of TFLOPs: {:.3f}'.format(flops / 1e12))
 
-    summary(model, (4, 160, 224, 160))
+    # Getting number of trainable parameters
+    param_size = 0
+    for param in model.parameters():
+        param_size += param.nelement() * param.element_size()
+    buffer_size = 0
+    for buffer in model.buffers():
+        buffer_size += buffer.nelement() * buffer.element_size()
 
-    assert seq_ouput.shape == preds.shape
+    size_all_mb = (param_size + buffer_size) / 1024 ** 2
+    print('Model size: {:.3f}MB'.format(size_all_mb))
 
-
-if __name__ == "__main__":
-    test()
+    # Validating output dimensions
+    print(f"Input shape: {seq_input.shape}")
+    if isinstance(preds, list):
+        for n, p in enumerate(preds):
+            print(f"Output shape (n): {p.shape}")
+            assert seq_ouput.shape == p.shape
+    else:
+        print(f"Output shape: {preds.shape}")
+        assert seq_ouput.shape == preds.shape

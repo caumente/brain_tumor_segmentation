@@ -1,11 +1,12 @@
 import torch
 from torch import nn
-from src.models.layers import conv1x1
-from src.models.layers import LevelBlock
+
 from src.models.layers import ConvInNormLeReLU
+from src.models.layers import LevelBlock
+from src.models.layers import conv1x1
 
 
-class ShallowUNet(nn.Module):
+class BTSUNet(nn.Module):
     """
     This class implements a variation of 3D Unet network. Main modifications are:
         - Replacement of ReLU activation layer by LeakyReLU
@@ -13,10 +14,10 @@ class ShallowUNet(nn.Module):
 
     """
 
-    name = "Shallow U-Net"
+    name = "BTS U-Net"
 
-    def __init__(self, sequences, regions, width, deep_supervision):
-        super(ShallowUNet, self).__init__()
+    def __init__(self, sequences, regions, width, deep_supervision=False):
+        super(BTSUNet, self).__init__()
 
         self.deep_supervision = deep_supervision
         widths = [width * 2 ** i for i in range(4)]
@@ -98,15 +99,18 @@ class ShallowUNet(nn.Module):
 
 
 if __name__ == "__main__":
+    # Defining variables
     seq_input = torch.rand(1, 4, 160, 224, 160)
     seq_ouput = torch.rand(1, 3, 160, 224, 160)
-
-    model = ShallowUNet(sequences=4, regions=3, width=24, deep_supervision=True)
+    model = BTSUNet(sequences=4, regions=3, width=24)
     preds = model(seq_input)
+
+    # Getting TFLOPs
     from flopth import flopth
     flops, params = flopth(model, in_size=((4, 160, 224, 160),), show_detail=False, bare_number=True)
-    print(flops/1000000000000)
+    print('Number of TFLOPs: {:.3f}'.format(flops / 1e12))
 
+    # Getting number of trainable parameters
     param_size = 0
     for param in model.parameters():
         param_size += param.nelement() * param.element_size()
@@ -115,14 +119,14 @@ if __name__ == "__main__":
         buffer_size += buffer.nelement() * buffer.element_size()
 
     size_all_mb = (param_size + buffer_size) / 1024 ** 2
-    print('model size: {:.3f}MB'.format(size_all_mb))
+    print('Model size: {:.3f}MB'.format(size_all_mb))
 
-
-    # print(seq_input.shape)
-    # if model.deep_supervision:
-    #     for p in preds:
-    #         print(p.shape)
-    #         assert seq_ouput.shape == p.shape
-    # else:
-    #     print(preds.shape)
-    #     assert seq_ouput.shape == preds.shape
+    # Validating output dimensions
+    print(f"Input shape: {seq_input.shape}")
+    if isinstance(preds, list):
+        for n, p in enumerate(preds):
+            print(f"Output shape (n): {p.shape}")
+            assert seq_ouput.shape == p.shape
+    else:
+        print(f"Output shape: {preds.shape}")
+        assert seq_ouput.shape == preds.shape
