@@ -16,9 +16,8 @@ The main contributions of the work are the following:
 image segmentation, such as U-Net or V-Net . Our model has significantly lower training  and computational requirements 
 while achieving better performance.
 
-- We showed that there are some discrepancies between LGG and HGG data that highlight a possible change in the way g
-glioma segmentation can be approached. Building specific models for HGG, the most important clinical cases brings better
-segmentation results without  any model modification.
+- The study shows statistical differences between LGG and HGG, and suggests a potential shift in glioma segmentation 
+strategies to optimize outcomes, especially for HGG tumors, the most aggressive.
 
 - We proved that the brain tumor segmentation problem can be effectively approached in a 2-step way by first classifying 
 the type of glioma between HGG and LGG.
