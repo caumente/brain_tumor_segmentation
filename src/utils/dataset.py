@@ -1,10 +1,11 @@
-import torch
+import random
 from pathlib import Path
 from typing import Union, Tuple, List
-import random
+
 import numpy as np
-from torchio import CropOrPad
+import torch
 from SimpleITK import GetArrayFromImage, ReadImage
+from torchio import CropOrPad
 
 
 def load_nii(path_folder: Path) -> np.ndarray:
@@ -54,6 +55,7 @@ def cleaning_outlier_voxels(
     image = np.clip(image, low, high)
 
     return image
+
 
 def scaler(
         image: np.array,
@@ -106,7 +108,6 @@ def fit_brain_boundaries(
     """
 
     def check_max_dim_allow(allow, max_, min_):
-
         if max_ - min_ > allow:
             diff = (max_ - min_) - allow
             max_ = max_ - diff
@@ -253,13 +254,13 @@ def flip_image(image: Union[torch.Tensor, np.ndarray], rand_axis=None):
     return image, rand_axis
 
 
-def image_histogram_equalization(image: np.array, number_bins: int=256, scaler="min_max") -> np.array:
+def image_histogram_equalization(image: np.array, number_bins: int = 256, scaler="min_max") -> np.array:
     # from http://www.janeriksolem.net/histogram-equalization-with-python-and.html
 
     # get image histogram
     image_histogram, bins = np.histogram(image.flatten(), number_bins, density=True)
-    cdf = image_histogram.cumsum() # cumulative distribution function
-    cdf = 255 * cdf / cdf[-1] # normalize
+    cdf = image_histogram.cumsum()  # cumulative distribution function
+    cdf = 255 * cdf / cdf[-1]  # normalize
 
     # use linear interpolation of cdf to find new pixel values
     image_equalized = np.interp(image.flatten(), bins[:-1], cdf)

@@ -1,13 +1,14 @@
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from pathlib import Path
 
-from src.utils.miscellany import count_pixels
-from src.utils.dataset import load_nii
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+
 from src.utils.dataset import cleaning_outlier_voxels
+from src.utils.dataset import load_nii
 from src.utils.dataset import min_max_scaler
+from src.utils.miscellany import count_pixels
 
 
 def read_sequences(patient_id, cohort, year, t1=True, t1ce=True, t2=True, flair=True, seg=False, clipping=False,
@@ -305,4 +306,3 @@ def plot_patient_mri_masked(sequences, labels, _slice, segmentation, alpha=.7, s
         plt.savefig(f'{save_path}.jpeg')
     else:
         plt.show()
-

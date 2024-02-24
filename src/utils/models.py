@@ -1,33 +1,22 @@
+import logging
 import os
 import sys
-
-import torch
-import logging
 from pathlib import Path
 from typing import List, Tuple
-from src.models.segmentator.DeepUNet import DeepUNet
-from src.models.segmentator.ResidualUNet import resunet_3d
-from src.models.segmentator.ShallowUNet import ShallowUNet
-from src.models.segmentator.DoubleShallowUNet import DoubleShallowUNet
-from src.models.segmentator.ShallowUNet_noPoolings import ShallowUNetNoPoolings
-from src.models.segmentator.MultiImageInput_ShallowUNet import MultiImageInput_ShallowUNet
-from src.models.segmentator.ShallowUNetSecondStage import ShallowUNetSecondStage
-from src.models.segmentator.MultiInputSkippedShallowUNet import MultiInputSkippedShallowUNet
-from src.models.segmentator.Unet3D import UNet3D
-# from src.models.segmentator.VNet import VNet
-from src.models.segmentator.UltraDeepUNet import UltraDeepUNet
-from src.models.segmentator.ResidualShallowUNet import ResidualShallowUNet
-from src.models.segmentator.AttentionShallowUNet import AttentionShallowUNet
-from src.models.classifiers.ShallowUNetClassifier import ShallowUNetClassifier
-# from src.models.segmentator.MISU import MISU
+
+import torch
+from monai.losses import DiceLoss, DiceFocalLoss, GeneralizedDiceLoss, DiceCELoss
+from monai.networks.nets import UNet, VNet, SegResNet
 from ranger import Ranger
 from ranger21 import Ranger21
-from monai.losses import DiceLoss, DiceFocalLoss, GeneralizedDiceLoss, DiceCELoss
-from src.loss.RegionBasedDice import RegionBasedDiceLoss
+
 from src.loss.ExperimentalDICE import ExperimentalDICE
-from monai.networks.nets import UNETR
-from src.models.segmentator.nnUNet2021 import nnUNet2021
-from monai.networks.nets import UNet,VNet, SegResNet
+from src.loss.RegionBasedDice import RegionBasedDiceLoss
+from src.models.classifiers.BTSUNetClassifier import BTSUNetClassifier
+from src.models.segmentator.BTSUNet import BTSUNet
+from src.models.segmentator.ResidualUNet import resunet_3d
+from src.models.segmentator.Unet3D import UNet3D
+from src.models.segmentator.nnUNet2020 import nnUNet2020
 
 
 def init_model_segmentation(
@@ -61,18 +50,15 @@ def init_model_segmentation(
     elif architecture == 'monai_segresnet':
         model = SegResNet(in_channels=len(sequences), out_channels=len(regions), init_filters=24)
     elif architecture == 'monai_unet':
-        model = UNet(spatial_dims=3, in_channels=len(sequences), out_channels=len(regions), channels=(24, 48, 96, 192), strides=(1, 1, 1, 1))
-    # elif architecture == 'VNet':
-        # model = VNet(sequences=len(sequences), regions=len(regions))
+        model = UNet(spatial_dims=3, in_channels=len(sequences), out_channels=len(regions), channels=(24, 48, 96, 192),
+                     strides=(1, 1, 1, 1))
     elif architecture == 'ResidualUNet':
         model = resunet_3d(sequences=len(sequences), regions=len(regions), witdh=width)
     elif architecture == 'ShallowUNet':
-        model = ShallowUNet(sequences=len(sequences), regions=len(regions), width=width,
-                            deep_supervision=deep_supervision)
+        model = BTSUNet(sequences=len(sequences), regions=len(regions), width=width,
+                        deep_supervision=deep_supervision)
     elif architecture == 'nnUNet2021':
-        model = nnUNet2021(sequences=len(sequences), regions=len(regions))
-    elif architecture == 'DeepUNet':
-        model = DeepUNet(sequences=len(sequences), regions=len(regions), width=width, deep_supervision=deep_supervision)
+        model = nnUNet2020(sequences=len(sequences), regions=len(regions))
     else:
         model = torch.nn.Module()
         assert "The model selected does not exist. " \
@@ -115,8 +101,8 @@ def init_model_classification(
     logging.info(f"Sequences for feeding the network: {len(sequences)} ({sequences})")
 
     if architecture == 'ShallowUNetClassifier':
-        model = ShallowUNetClassifier(sequences=len(sequences), classes=classes, width=width,
-                                      dense_neurons=dense_neurons)
+        model = BTSUNetClassifier(sequences=len(sequences), classes=classes, width=width,
+                                  dense_neurons=dense_neurons)
     else:
         model = torch.nn.Module()
         assert "The model selected does not exist. " \

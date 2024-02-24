@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append("./../../")
 from collections import Counter
 from SimpleITK import GetImageFromArray, WriteImage, ReadImage
@@ -14,7 +15,6 @@ def filter_label(img, label):
 
 
 def ensemble_label(imgs):
-
     ensemble = np.zeros(shape=(imgs[0].shape[0], imgs[0].shape[1], imgs[0].shape[2]), dtype=int)
 
     for i in range(imgs[0].shape[0]):
@@ -55,18 +55,12 @@ for n, (path_im1, path_im2, path_im3) in enumerate(zip(sorted(glob.glob(f'{path1
         im1 = filter_label(load_nii(path_im1), label=label)
         im2 = filter_label(load_nii(path_im2), label=label)
         im3 = filter_label(load_nii(path_im3), label=label)
-        #if label == 1:
+        # if label == 1:
         #    labels.append(ensemble_label(imgs=(im1, im2)))
-        #else:
+        # else:
         labels.append(ensemble_label(imgs=(im1, im2, im3)))
 
     ensemble = labels[0] + labels[1] + labels[2]
     ensembled_segmentation = GetImageFromArray(ensemble, isVector=False)
     ensembled_segmentation.CopyInformation(ref_image)  # this step is crucial to maintain the orientation
     WriteImage(ensembled_segmentation, f"{output_path}BraTS20_Validation_{patient_id}.nii.gz")
-
-
-
-
-
-

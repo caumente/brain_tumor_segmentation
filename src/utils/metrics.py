@@ -1,6 +1,7 @@
 import logging
-from typing import List, Tuple
 from pathlib import Path
+from typing import List, Tuple
+
 import numpy as np
 import torch
 from numpy import logical_and as l_and, logical_not as l_not
@@ -148,7 +149,6 @@ def specificity(tn: float, fp: float) -> float:
 
 
 def precision(tp: float, fp: float) -> float:
-
     if tp == 0:
         prec = np.nan
     else:
@@ -158,12 +158,10 @@ def precision(tp: float, fp: float) -> float:
 
 
 def accuracy(tp: float, tn: float, fp: float, fn: float) -> float:
-
     return (tp + tn) / (tp + tn + fp + fn)
 
 
 def dice_score(tp: float, fp: float, fn: float, gt: np.ndarray, seg: np.ndarray) -> float:
-
     if np.sum(gt) == 0:
         dice = 1 if np.sum(seg) == 0 else 0
     else:
@@ -173,7 +171,6 @@ def dice_score(tp: float, fp: float, fn: float, gt: np.ndarray, seg: np.ndarray)
 
 
 def jaccard_index(tp: float, fp: float, fn: float, gt: np.ndarray, seg: np.ndarray) -> float:
-
     if np.sum(gt) == 0:
         jac = 1 if np.sum(seg) == 0 else 0
     else:
@@ -183,7 +180,6 @@ def jaccard_index(tp: float, fp: float, fn: float, gt: np.ndarray, seg: np.ndarr
 
 
 def haussdorf_distance(gt: np.ndarray, seg: np.ndarray) -> float:
-
     if np.sum(gt) == 0:
         hd = np.nan
     else:

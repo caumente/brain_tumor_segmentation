@@ -1,21 +1,23 @@
-import os
-import json
-import torch
-import random
-import pprint
-import logging
 import argparse
+import json
+import logging
+import os
+import pprint
+import random
+from typing import Tuple
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from typing import Tuple
-from torch.cuda.amp import autocast
+import seaborn as sns
+import torch
+from SimpleITK import GetImageFromArray, WriteImage, ReadImage
 from sklearn.metrics import accuracy_score
-from SimpleITK import GetImageFromArray, GetArrayFromImage, WriteImage, ReadImage
+from torch.cuda.amp import autocast
+
+from ..dataset.BraTS_dataset import recover_initial_resolution
 from ..utils.metrics import METRICS
 from ..utils.metrics import calculate_metrics
-from ..dataset.BraTS_dataset import recover_initial_resolution
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 def save_args(args: argparse.Namespace):
@@ -90,7 +92,7 @@ def model_prediction(model: torch.nn.Module, sequences: torch.tensor, device: st
     with autocast(enabled=auto_cast_bool):
         with torch.no_grad():
             segmentation = model(sequences)
-            if type(segmentation) == list:
+            if isinstance(segmentation, list):
                 segmentation = segmentation[-1]
             segmentation = torch.sigmoid(segmentation[0]).cpu().numpy() > 0.5
 
@@ -192,7 +194,7 @@ def generate_segmentations(
     metrics_list = []
     for _, batch in enumerate(data_loader):
         ref_path = ['./../datasets/BRATS2020/TrainingData/BraTS20_Training_001/BraTS20_Training_001_seg.nii.gz']
-        #ref_path = ['./../datasets/BRATS2021/TrainingData/BraTS2021_00002/BraTS2021_00002_seg.nii.gz']
+        # ref_path = ['./../datasets/BRATS2021/TrainingData/BraTS2021_00002/BraTS2021_00002_seg.nii.gz']
         # Getting image attributes
         sequences = batch["sequences"]
         ground_truth = batch["ground_truth"][0].cpu().numpy()
@@ -205,7 +207,6 @@ def generate_segmentations(
         segmentation = model_prediction(model=model, sequences=sequences, device=device)
         logging.info(f"Segmentation calculated...")
 
-
         # Evaluating ground truth and segmentation
         patient_metric_list = calculate_metrics(ground_truth=ground_truth, segmentation=segmentation,
                                                 patient=patient_id, regions=args.regions)
@@ -213,21 +214,22 @@ def generate_segmentations(
         logging.info(f"Metrics stored...")
 
         # Recovering initial resolution and transforming regions to labels
-        recovered_segmentation = recover_initial_resolution(image=segmentation, cropped_indexes=cropped_indexes, random_indexes=random_indexes)
+        recovered_segmentation = recover_initial_resolution(image=segmentation, cropped_indexes=cropped_indexes,
+                                                            random_indexes=random_indexes)
         recovered_segmentation = regions_to_labels(segmentation=recovered_segmentation, regions=args.regions)
 
         # Postprocessing
         if args.postprocessing_threshold > 0:
             pixels_dict = count_pixels(recovered_segmentation)
             if pixels_dict[4.0] < args.postprocessing_threshold:
-                logging.info(f"This segmentation has less than {args.postprocessing_threshold} pixels in the ET region. Dropping that label.")
+                logging.info(
+                    f"This segmentation has less than {args.postprocessing_threshold} pixels in the ET region. Dropping that label.")
                 recovered_segmentation[recovered_segmentation == 4.0] = 1.0
-
 
         # Storing segmentation using the input resolution
         recovered_segmentation = GetImageFromArray(np.expand_dims(recovered_segmentation, 0), isVector=False)
         ref_image = ReadImage(ref_path)
-        recovered_segmentation.CopyInformation(ref_image) # this step is crutial to maintain the orientation
+        recovered_segmentation.CopyInformation(ref_image)  # this step is crutial to maintain the orientation
         WriteImage(recovered_segmentation, f"{args.seg_folder}/{patient_id}.nii.gz")
         logging.info(f"Recovering initial dimensions...")
 
@@ -238,8 +240,10 @@ def generate_segmentations(
 
         # Saving sequences and ground truth cropped, and segmentation predicted
         np.save(f"{args.seg_folder}/{patient_id}_sequences", sequences.cpu().numpy()[0])
-        WriteImage(GetImageFromArray(ground_truth.astype(np.int16)), f"{args.seg_folder}/{patient_id}_ground_truth.nii.gz")
-        WriteImage(GetImageFromArray(segmentation.astype(np.int16)), f"{args.seg_folder}/{patient_id}_segmentation.nii.gz")
+        WriteImage(GetImageFromArray(ground_truth.astype(np.int16)),
+                   f"{args.seg_folder}/{patient_id}_ground_truth.nii.gz")
+        WriteImage(GetImageFromArray(segmentation.astype(np.int16)),
+                   f"{args.seg_folder}/{patient_id}_segmentation.nii.gz")
         logging.info(f"Sequences, ground truth and segmentation saved successfully...")
 
     # Generating .csv which contains all metrics
@@ -288,7 +292,7 @@ def generate_segmentations_pretrained(
     metrics_list = []
     for _, batch in enumerate(data_loader):
         ref_path = ['./../datasets/BRATS2020/TrainingData/BraTS20_Training_001/BraTS20_Training_001_seg.nii.gz']
-        #ref_path = ['./../datasets/BRATS2021/TrainingData/BraTS2021_00002/BraTS2021_00002_seg.nii.gz']
+        # ref_path = ['./../datasets/BRATS2021/TrainingData/BraTS2021_00002/BraTS2021_00002_seg.nii.gz']
         # Getting image attributes
         sequences = batch["sequences"]
         ground_truth = batch["ground_truth"][0].cpu().numpy()
@@ -321,7 +325,6 @@ def generate_segmentations_pretrained(
         segmentation = model_prediction(model=model, sequences=inputs_concatenated, device=device)
         logging.info(f"Segmentation calculated...")
 
-
         # Evaluating ground truth and segmentation
         patient_metric_list = calculate_metrics(ground_truth=ground_truth, segmentation=segmentation,
                                                 patient=patient_id, regions=args.regions)
@@ -329,21 +332,22 @@ def generate_segmentations_pretrained(
         logging.info(f"Metrics stored...")
 
         # Recovering initial resolution and transforming regions to labels
-        recovered_segmentation = recover_initial_resolution(image=segmentation, cropped_indexes=cropped_indexes, random_indexes=random_indexes)
+        recovered_segmentation = recover_initial_resolution(image=segmentation, cropped_indexes=cropped_indexes,
+                                                            random_indexes=random_indexes)
         recovered_segmentation = regions_to_labels(segmentation=recovered_segmentation, regions=args.regions)
 
         # Postprocessing
         if args.postprocessing_threshold > 0:
             pixels_dict = count_pixels(recovered_segmentation)
             if pixels_dict[4.0] < args.postprocessing_threshold:
-                logging.info(f"This segmentation has less than {args.postprocessing_threshold} pixels in the ET region. Dropping that label.")
+                logging.info(
+                    f"This segmentation has less than {args.postprocessing_threshold} pixels in the ET region. Dropping that label.")
                 recovered_segmentation[recovered_segmentation == 4.0] = 1.0
-
 
         # Storing segmentation using the input resolution
         recovered_segmentation = GetImageFromArray(np.expand_dims(recovered_segmentation, 0), isVector=False)
         ref_image = ReadImage(ref_path)
-        recovered_segmentation.CopyInformation(ref_image) # this step is crutial to maintain the orientation
+        recovered_segmentation.CopyInformation(ref_image)  # this step is crutial to maintain the orientation
         WriteImage(recovered_segmentation, f"{args.seg_folder}/{patient_id}.nii.gz")
         logging.info(f"Recovering initial dimensions...")
 
@@ -354,8 +358,10 @@ def generate_segmentations_pretrained(
 
         # Saving sequences and ground truth cropped, and segmentation predicted
         np.save(f"{args.seg_folder}/{patient_id}_sequences", sequences.cpu().numpy()[0])
-        WriteImage(GetImageFromArray(ground_truth.astype(np.int16)), f"{args.seg_folder}/{patient_id}_ground_truth.nii.gz")
-        WriteImage(GetImageFromArray(segmentation.astype(np.int16)), f"{args.seg_folder}/{patient_id}_segmentation.nii.gz")
+        WriteImage(GetImageFromArray(ground_truth.astype(np.int16)),
+                   f"{args.seg_folder}/{patient_id}_ground_truth.nii.gz")
+        WriteImage(GetImageFromArray(segmentation.astype(np.int16)),
+                   f"{args.seg_folder}/{patient_id}_segmentation.nii.gz")
         logging.info(f"Sequences, ground truth and segmentation saved successfully...")
 
     # Generating .csv which contains all metrics
@@ -450,7 +456,6 @@ def init_log(log_name: str):
 
 
 def seed_everything(seed: int):
-
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)
@@ -459,7 +464,6 @@ def seed_everything(seed: int):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
     torch.cuda.manual_seed_all(seed)
-
 
 
 class AverageMeter(object):
@@ -510,7 +514,6 @@ class ProgressMeter(object):
 
 
 def count_pixels(segmentation):
-
     unique, counts = np.unique(segmentation, return_counts=True)
     pixels_dict = dict(zip(unique, counts))
 
@@ -543,7 +546,7 @@ def labels_to_regions(segmentation: np.ndarray, regions: tuple) -> np.ndarray:
     wt = np.logical_or(tc, segmentation == 2)
     regions_dict = {"et": et, "tc": tc, "wt": wt}
 
-    et_present = True if np.sum(et) >= 1 else False
+    # et_present = True if np.sum(et) >= 1 else False
     segmentation = np.stack([regions_dict[region] for region in regions])
 
     return segmentation
