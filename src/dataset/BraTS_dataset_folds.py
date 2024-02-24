@@ -1,10 +1,10 @@
-from pathlib import Path
-from typing import List
 import logging as log
-import numpy as np
+from pathlib import Path
+
 import pandas as pd
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from torch.utils.data import DataLoader
+
 from src.dataset.BraTS_Dataloader import Brats
 
 
@@ -46,28 +46,16 @@ def get_folded_datasets(
     patients_path_train, patients_path_val, patients_path_test = [], [], []
     kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=1)
     for n, (train_ix, test_ix) in enumerate(kfold.split(mapping, mapping['Grade'])):
-        # print(f"fold {n}")
-        train_val_mapping, test = mapping.iloc[train_ix], mapping.iloc[test_ix]
-        test['fold'] = [n] * len(test)
-        # print(test)
-        # print(test['name'].to_list())
+
+        train_val_mapping, test_mapping = mapping.iloc[train_ix], mapping.iloc[test_ix]
+        test_mapping['fold'] = [n] * len(test_mapping)
+
         train, val = train_test_split(train_val_mapping, train_size=0.9, random_state=int(seed), shuffle=True,
                                       stratify=train_val_mapping['Grade'])
 
-        # print(len(train[train.Grade == 'LGG']))
-        # print(len(val[val.Grade == 'LGG']))
-        # print(len(test[test.Grade == 'LGG']))
         patients_path_train.append([patients_dir[i] for i in train.index])
         patients_path_val.append([patients_dir[i] for i in val.index])
-        patients_path_test.append([patients_dir[i] for i in test.index])
-    #
-    # print(len(patients_path_train), len(patients_path_train[0]), len(patients_path_train[1]), len(patients_path_train[2]), len(patients_path_train[3]), len(patients_path_train[4]))
-    # print(len(patients_path_val), len(patients_path_val[0]), len(patients_path_val[1]), len(patients_path_val[2]), len(patients_path_val[3]), len(patients_path_val[4]))
-    # print(len(patients_path_test), len(patients_path_test[0]), len(patients_path_test[1]), len(patients_path_test[2]), len(patients_path_test[3]), len(patients_path_test[4]))
-    #
-    # print(patients_path_train[0])
-    # print(patients_path_val[0])
-    # print(patients_path_test[0])
+        patients_path_test.append([patients_dir[i] for i in test_mapping.index])
 
     fold_trainset, fold_valset, fold_testset = [], [], []
     for fold_train_path, fold_val_path, fold_test_path in zip(patients_path_train, patients_path_val,
@@ -125,18 +113,6 @@ def get_folded_datasets(
                                   name_grade=name_grade)
                             )
 
-    # print(f"Size of train dataset: {len(fold_trainset)}")
-    # print(f"Size of val dataset: {len(fold_valset)}")
-    # print(f"Size of test dataset: {len(fold_testset)}")
-    #
-    # print(f"Size of train dataset: {len(fold_trainset[0])}")
-    # print(f"Size of val dataset: {len(fold_valset[0])}")
-    # print(f"Size of test dataset: {len(fold_testset[0])}")
-    #
-    # print(f"Shape of images used for training: {fold_trainset[0][0]['sequences'].shape}")
-    # print(f"Shape of images used for val: {fold_valset[0][0]['sequences'].shape}")
-    # print(f"Shape of images used for test: {fold_testset[0][0]['sequences'].shape}")
-
     return fold_trainset, fold_valset, fold_testset
 
 
@@ -174,12 +150,6 @@ if __name__ == '__main__':
     train, val, test = get_folded_datasets(sequences=["_t1", "_t1ce", "_t2", "_flair"], regions=["et", "tc", "wt"],
                                            seed=1, debug_mode=False, crop_or_pad=(20, 20, 20),
                                            path_images="./datasets/BRATS2020/TrainingData/")
-
-    # for f in train:
-    #     print(len(f))
-    #
-    # for f in val:
-    #     print(len(f))
 
     for f in test:
         print(f)

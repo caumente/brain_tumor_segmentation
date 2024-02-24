@@ -1,10 +1,12 @@
+import logging as log
 from pathlib import Path
 from typing import List
-import logging as log
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, ConcatDataset
+
 from src.dataset.BraTS_Dataloader import Brats
 
 
@@ -212,8 +214,8 @@ def oversampled_dataset(df, strategy='LGG'):
     taking both.
     """
     if strategy == 'LGG':
-        LGGS = df[df.Grade == "LGG"]
-        df = pd.concat([df, LGGS, LGGS])
+        lggs = df[df.Grade == "LGG"]
+        df = pd.concat([df, lggs, lggs])
     elif strategy == 'few_ET':
         few_pixels = df[df.name.isin(['086', '087', '141', '262', '263', '264', '265', '266', '268', '269', '271',
                                       '272', '275', '278', '279', '280', '281', '286', '289', '291', '294', '295',
@@ -221,12 +223,12 @@ def oversampled_dataset(df, strategy='LGG'):
                                       '315', '319', '321', '322', '324', '325', '329', '330', '335', '361'])]
         df = pd.concat([df, few_pixels, few_pixels])
     elif strategy == "both":
-        LGGS = df[df.Grade == "LGG"]
+        lggs = df[df.Grade == "LGG"]
         few_pixels = df[df.name.isin(['086', '087', '141', '262', '263', '264', '265', '266', '268', '269', '271',
                                       '272', '275', '278', '279', '280', '281', '286', '289', '291', '294', '295',
                                       '297', '298', '299', '304', '305', '306', '307', '310', '311', '312', '313',
                                       '315', '319', '321', '322', '324', '325', '329', '330', '335', '361'])]
-        df = pd.concat([df, LGGS, LGGS, few_pixels, few_pixels])
+        df = pd.concat([df, lggs, lggs, few_pixels, few_pixels])
 
     return df
 
@@ -262,13 +264,13 @@ def recover_initial_resolution(image, cropped_indexes, random_indexes):
         xmin_rebuild = xmin - xmin_pad
         xmax_rebuild = 240 - (xmax + xmax_pad)
 
-        dims = [(zmin_rebuild, zmax_rebuild), (ymin_rebuild, ymax_rebuild), (xmin_rebuild, xmax_rebuild)]
+        dimensions = [(zmin_rebuild, zmax_rebuild), (ymin_rebuild, ymax_rebuild), (xmin_rebuild, xmax_rebuild)]
 
-        return dims
+        return dimensions
 
-    def get_crop_idx(image, dims):
+    def get_crop_idx(input_image, dimensions):
         crops_idx = []
-        for n, (a, b) in enumerate(dims):
+        for n, (a, b) in enumerate(dimensions):
             # Crops
             if a < 0:
                 a = -a
@@ -276,16 +278,16 @@ def recover_initial_resolution(image, cropped_indexes, random_indexes):
                 a = 0
 
             if b >= 0:
-                b = image[0].shape[n]
+                b = input_image[0].shape[n]
 
             crops_idx.append((a, b))
 
         return crops_idx
 
-    def get_pad_idx(dims):
+    def get_pad_idx(dimensions):
 
         pads_idx = [(0, 0)]
-        for a, b in dims:
+        for a, b in dimensions:
             # Pads
             if a <= 0:
                 a = 0
@@ -306,4 +308,3 @@ def recover_initial_resolution(image, cropped_indexes, random_indexes):
     image = np.pad(image, get_pad_idx(dims))
 
     return image
-

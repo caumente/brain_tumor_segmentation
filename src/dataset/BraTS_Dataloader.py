@@ -5,16 +5,15 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from monai import transforms
 from skimage import util
 from torch import from_numpy
 from torch.utils.data.dataset import Dataset
 
 from src.utils.dataset import cleaning_outlier_voxels
 from src.utils.dataset import fit_brain_boundaries
+from src.utils.dataset import image_histogram_equalization
 from src.utils.dataset import load_nii
 from src.utils.dataset import random_pad_or_crop
-from src.utils.dataset import image_histogram_equalization
 from src.utils.dataset import scaler
 
 
@@ -193,9 +192,11 @@ class Brats(Dataset):
                 sequences, ground_truth = np.flip(sequences, 1), np.flip(ground_truth, 1)
 
         if self.auto_cast_bool:
-            sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float16"), ground_truth.astype("bool")]]
+            sequences, ground_truth = [from_numpy(x) for x in
+                                       [sequences.astype("float16"), ground_truth.astype("bool")]]
         else:
-            sequences, ground_truth = [from_numpy(x) for x in [sequences.astype("float32"), ground_truth.astype("bool")]]
+            sequences, ground_truth = [from_numpy(x) for x in
+                                       [sequences.astype("float32"), ground_truth.astype("bool")]]
 
         return dict(
             patient_id=patient_info["id"],

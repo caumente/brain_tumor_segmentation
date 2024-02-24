@@ -149,15 +149,3 @@ def folded_dataset_loading(args):
     test_loader = DataLoader(test_dataset, batch_size=1, num_workers=args.workers)
 
     return fold_train_loader, test_loader
-
-
-# if __name__ == '__main__':
-#     folds, test = get_folded_datasets(sequences=["_t1", "_t1ce", "_t2", "_flair"], regions=["et", "tc", "wt"],
-#                                       seed=1, debug_mode=False, crop_or_pad=(20, 20, 20),
-#                                       path_images="./datasets/BRATS2020/TrainingData/")
-#
-#     print(len(test))
-#
-#     for f in folds:
-#         print(len(f))
-

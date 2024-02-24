@@ -1,8 +1,8 @@
-import torch
 import logging
-from torch import nn
 from random import random, sample, uniform
-import numpy as np
+
+import torch
+from torch import nn
 
 
 class DataAugmenter(nn.Module):
@@ -21,8 +21,8 @@ class DataAugmenter(nn.Module):
             flip: bool = False,
             gaussian_noise: bool = False,
             seq_shuffling: bool = False,
-            drop_seq:bool = False
-    ) -> torch.Tensor:
+            drop_seq: bool = False
+    ):
         super(DataAugmenter, self).__init__()
         self.p = probability
         self.flip = flip
@@ -59,10 +59,10 @@ class DataAugmenter(nn.Module):
         else:
             return x
 
-
     def gaussian_noise(self, x) -> torch.Tensor:
         """
-        This function takes a tensor as input an generate a white noise. The way to calculate the white noise is as follow:
+        This function takes a tensor as input and generate a white noise. The way to calculate the white noise is
+        as follows:
             First multiply the image by a value got from a uniform distribution between 0.9 and 1.1.
             The standard deviation is calculated individually by channel.
             Generate noise as a normal distribution using mean 0 and std calculated before
@@ -80,13 +80,12 @@ class DataAugmenter(nn.Module):
         noise = torch.stack([torch.normal(0, std * 0.1, size=x[0, 0].shape) for std in std_per_channel]).to(x.device)
         x = x + noise
 
-
         return x
 
 
 def channel_shuffling(image: torch.Tensor) -> torch.Tensor:
     """
-    This function takes a tensor as input an generate a channel shuffling. In our case, since we do not have
+    This function takes a tensor as input and generate a channel shuffling. In our case, since we do not have
     channels this function exchange the order of the sequences.
 
     Params:
@@ -108,7 +107,7 @@ def channel_shuffling(image: torch.Tensor) -> torch.Tensor:
 
 def drop_channel(image: torch.Tensor) -> torch.Tensor:
     """
-    This function takes a tensor as input an generate a drop channel. This means replace some of the sequences
+    This function takes a tensor as input and generate a drop channel. This means replace some of the sequences
     by a Tensor composed by zero values.
 
     Params:
