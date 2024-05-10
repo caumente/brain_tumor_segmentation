@@ -12,15 +12,11 @@ deep  learning architecture to deal with the problem at hand automatically.
 
 The main contributions of the work are the following:
 
-- We propose an efficient architecture that outperforms  some of popular architectures previously applied to biomedical 
-image segmentation, such as U-Net or V-Net . Our model has significantly lower training  and computational requirements 
-while achieving better performance.
+- We propose a novel efficient lightweight architecture that outperforms some of the most popular architectures previously applied to biomedical image segmentation, such as U-Net or V-Net. Our model has significantly lower training and computational requirements while achieving comparable performance
 
-- The study shows statistical differences between LGG and HGG, and suggests a potential shift in glioma segmentation 
-strategies to optimize outcomes, especially for HGG tumors, the most aggressive.
-
-- We proved that the brain tumor segmentation problem can be effectively approached in a 2-step way by first classifying 
-the type of glioma between HGG and LGG.
+- The study shows statistical differences between LGG and HGG, and suggests a potential shift in glioma segmentation strategies to optimize outcomes, especially for HGG tumors, the most aggressive.
+  
+- We prove that the brain tumor segmentation problem can be effectively approached in a 2-step way by first classifying the type of glioma between HGG and LGG, and then segmenting the MRI.
 
 
 
