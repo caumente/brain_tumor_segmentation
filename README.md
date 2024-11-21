@@ -27,9 +27,9 @@ The model was trained on the BraTS 2020 dataset, which contains multi-modal MRI 
 of gliomas. The dataset was split into training (80%), validation (10%), and test (10%) subsets, with 
 appropriate preprocessing including voxel normalization, cropping, and augmentation.
 
-
-<img src="https://github.com/caumente/brain_tumor_segmentation/blob/main/paper_imgs/MRI_sequences.png" width="600">
-
+<p align="center">
+   <img src="https://github.com/caumente/brain_tumor_segmentation/blob/main/paper_imgs/MRI_sequences.png" width="400">
+</p>
 
 ### Model Architecture
 BTS U-Net builds on the U-Net architecture with the following enhancements:
@@ -57,8 +57,9 @@ and less infiltrative, exhibit subtler changes in MRI characteristics, making th
 
 The analysis of segmentation masks provided by radiologists further reinforced the findings from the MRI characteristics study.
 
-<img src="https://github.com/caumente/brain_tumor_segmentation/blob/main/paper_imgs/boxplot_voxels_labels_v2.png" width="600">
-
+<p align="center">
+   <img src="https://github.com/caumente/brain_tumor_segmentation/blob/main/paper_imgs/boxplot_voxels_labels_v2.png" width="400">
+</p>
 
 ### Comparative Performance
 
