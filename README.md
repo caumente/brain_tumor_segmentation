@@ -82,3 +82,22 @@ Qualitative results are displayed below:
 
 ![Qualitative results](./paper_imgs/qualitative_colors.png)
 
+
+## Conclusions
+
+This study highlights the effectiveness of BTS U-Net, a lightweight deep learning model for brain tumor segmentation, 
+offering competitive accuracy with reduced computational demands. Its efficient design makes it ideal for 
+resource-constrained applications, such as medical devices.
+
+Significant differences between low-grade (LGG) and high-grade gliomas (HGG) were identified, emphasizing the need for
+tumor-specific strategies. Training separate models for HGG improved segmentation performance, supporting a two-step 
+approach of classification followed by segmentation.
+
+BTS U-Net demonstrates a practical and sustainable solution for AI-driven medical imaging, with potential for broader 
+clinical applications and future research on dataset variability and generalization.
+
+## References
+
+- B. H. Menze, A. Jakab, S. Bauer, J. Kalpathy-Cramer, K. Farahani,  J. Kirby, Y. Burren, N. Porz, J. Slotboom, R. Wiest, et al., The multimodal brain tumor image segmentation benchmark (BRATS), IEEE Transactions on Medical Imaging 34 (10) (2014) 1993–2024
+- O. Ronneberger, P. Fischer, T. Brox, U-Net: Convolutional networks for biomedical image segmentation, in: International Conference on Medical Image Computing and Computer-Assisted Intervention, Springer, 2015, pp. 234–24
+- F. Isensee, P. F. Jaeger, S. A. Kohl, J. Petersen, K. H. Maier-Hein, nnU-net: a self-configuring method for deep learning-based biomedical image segmentation, Nature methods 18 (2) (2021) 203–211
