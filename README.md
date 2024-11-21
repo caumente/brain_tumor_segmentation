@@ -28,7 +28,7 @@ of gliomas. The dataset was split into training (80%), validation (10%), and tes
 appropriate preprocessing including voxel normalization, cropping, and augmentation.
 
 
-<img src="https://github.com/caumente/brain_tumor_segmentation/blob/main/paper_imgs/MRI_sequences.png" width="200">
+<img src="https://github.com/caumente/brain_tumor_segmentation/blob/main/paper_imgs/MRI_sequences.png" width="600">
 
 
 ### Model Architecture
@@ -57,7 +57,8 @@ and less infiltrative, exhibit subtler changes in MRI characteristics, making th
 
 The analysis of segmentation masks provided by radiologists further reinforced the findings from the MRI characteristics study.
 
-![BTS U-Net](./paper_imgs/boxplot_voxels_labels_v2.png)
+<img src="https://github.com/caumente/brain_tumor_segmentation/blob/main/paper_imgs/boxplot_voxels_labels_v2.png" width="600">
+
 
 ### Comparative Performance
 
