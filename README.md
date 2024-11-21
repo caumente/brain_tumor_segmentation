@@ -28,7 +28,7 @@ of gliomas. The dataset was split into training (80%), validation (10%), and tes
 appropriate preprocessing including voxel normalization, cropping, and augmentation.
 
 
-![MRI_sequences](./paper_imgs/MRI_sequences.png)
+<img src="https://github.com/caumente/brain_tumor_segmentation/blob/main/paper_imgs/MRI_sequences.png" width="200">
 
 
 ### Model Architecture
