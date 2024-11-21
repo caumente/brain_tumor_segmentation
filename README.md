@@ -63,13 +63,9 @@ The analysis of segmentation masks provided by radiologists further reinforced t
 
 ### Comparative Performance
 
-2. The study demonstrated improved performance when segmenting HGG separately, supporting the use of a two-step pipeline:
-   - **Step 1:** Classify tumor type (HGG vs. LGG)
-   - **Step 2:** Perform segmentation using a model fine-tuned for the specific tumor type.
-
-
 BTS U-Net was compared against established architectures like U-Net, V-Net, and nnU-Net. Key findings include:
-- **Training Time:** Up to 79.2% faster than nnU-Net.
+- **Model size:** Reduced the number of trainable parameters by at least half.
+- **Training Time:** Up to 79.2% faster than other architectures.
 - **Performance:** Comparable performance with significantly fewer parameters (5M vs. nnU-Net's 33M).
 
 
@@ -85,8 +81,4 @@ BTS U-Net was compared against established architectures like U-Net, V-Net, and 
 Qualitative results are displayed below:
 
 ![Qualitative results](./paper_imgs/qualitative_colors.png)
-
-
-
-
 
